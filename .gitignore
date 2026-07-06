@@ -1,0 +1,7 @@
+# Serviços são repositórios git independentes — não versionar aqui
+svc-*/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
