@@ -129,11 +129,16 @@
 
 > Uma fase por iteração do loop. Cada fase tem entregável, verificação e stop condition. O agente NÃO avança com a verificação falhando; NÃO refatora fases anteriores sem gate quebrado apontando para elas.
 >
-> **Regra de F0 (aprendida no piloto):** criar o repo **já no diretório final** (`microservicos-ai-orchestrator/<svc-nome>/`). Mover a pasta depois quebra os shebangs do `.venv` — se for inevitável, rodar `make venv` de novo. `Makefile` chama ferramentas via `python -m` (ver §8.5).
+> **Regra de F0 robusto (aprendida rodadas 1 e 4):**
+> - Criar o repo **já no diretório final** (`microservicos-ai-orchestrator/<svc-nome>/`). Mover depois quebra shebangs do `.venv` (§8.5).
+> - No scaffold, criar **TODOS os diretórios de uma vez** (`mkdir -p src/<pkg> tests evals/data evals/results models`) **antes** de qualquer `touch`/escrita — um `mkdir` faltando faz um `&&` abortar e mascara a falha.
+> - Comandos de **background usam paths absolutos**: um job em background roda no **cwd default**, não no cwd do serviço; caminhos relativos vão para o lugar errado.
+> - Scripts de setup terminam com o **código de saída real** (`exit "$rc"`), **nunca** com um `echo` no fim — senão o job reporta "exit 0" mesmo tendo falhado (o venv pode nunca ter sido criado e o job "passa").
+> - `Makefile` chama ferramentas via `python -m` (ver §8.5).
 
 | Fase | Entregável | Verificação (comando) | Stop condition |
 |------|-----------|----------------------|----------------|
-| F0 | Scaffold no diretório final: repo, pyproject, Dockerfile (download do modelo no build, se houver), Makefile (`python -m`), CI, estrutura de pastas | `<docker build + make check>` | build verde |
+| F0 | Scaffold no diretório final: repo, pyproject, Dockerfile (download do modelo no build, se houver), Makefile (`python -m`), CI, **todos os diretórios criados de uma vez** | `<docker build + make check>` | build verde + `.venv/bin/python` existe |
 | F1 | `api/openapi.yaml` completo + schemas Pydantic | G4 | contrato validado |
 | F2 | `<núcleo 1>` + testes | G1 (subset) | testes do módulo verdes |
 | F3 | `<núcleo 2>` + testes | G1 (subset) + G2 | gate de qualidade PASS |

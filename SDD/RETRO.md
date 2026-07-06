@@ -151,3 +151,40 @@ Quarto serviço; template com as 4 correções menores da rodada 3 aplicadas (§
 ## Decisão
 
 4/7 DONE. Método robusto mesmo no serviço de maior superfície. **1 correção de processo importante** (F0 robusto: dirs no scaffold + paths absolutos + exit real) a aplicar ao template antes da rodada 5. Próximo: `spec-svc-rag` (rodada 5, ordem ARCHITECTURE §4).
+
+---
+
+# RETRO — Rodada 5 (svc-rag)
+
+Quinto serviço; template com F0 robusto aplicado (§11). Veredito: F0→F7 até **G1–G8 todos PASS**. O F0 robusto **eliminou a fricção de cwd/venv da rodada 4** — scaffold criou todos os dirs de uma vez, venv com path absoluto e `exit $rc` real; zero retrabalho de setup.
+
+## Resultados
+
+| Gate | Resultado |
+|------|-----------|
+| G1 testes | 55 pass |
+| G2 Recall@3 (SBERT) | **1.000** (12/12) — iguala o baseline do AIO |
+| G3 chunking + armadilha | 7/7 |
+| G4 store + idempotência | 5/5 |
+| G5 lint+mypy | limpo |
+| G6 contrato | OpenAPI válido |
+| G7 security | fail-closed + SSRF |
+| G8 busca | P95 1.05ms |
+
+## O que funcionou
+
+- **F0 robusto pagou na hora**: a fricção nº1 da rodada 4 (background em cwd errado, venv fantasma) não repetiu. Correção de processo validada.
+- **Adapter+fake em dois eixos de novo** (embedder Fake/SBERT + store InMemory/Qdrant): gates offline, produção plugável. Qdrant via httpx REST evitou dependência pesada.
+- **Recall@3 1.000** com corpus sintético + distrator (armadilha): o golden com documento-distrator (§12.7) confirmou que o distrator não entra no topo.
+
+## Fricção nova (rodada 5) — pequena
+
+- **DNS em teste de SSRF**: `test_ssrf_public_ok` usava `example.com` (como no svc-router, onde passou), mas neste ambiente o DNS de `example.com` não resolveu → `ValueError`. Trocado por **IP público literal** (`8.8.8.8`), que não exige DNS. **Candidato ao template**: testes de allow-SSRF usam IP literal público, não hostname (evita dependência de DNS no ambiente de gate).
+
+## Correção de escopo honesta
+
+- **svc-rag não implementa spans OTel próprios** (DECISIONS D7): embeddings locais não são "GenAI generation"; observabilidade via /metrics+logs. Spans HTTP → BACKLOG. Nenhum gate afetado. (Mesma decisão do svc-router.)
+
+## Decisão
+
+5/7 DONE. Método estável e previsível — 3 rodadas seguidas (evals, inference, router, rag) sem fricção de lógica; só ajustes de ambiente/processo, cada um virando regra no template. **1 correção menor** (IP literal em teste SSRF) a aplicar quando conveniente. Próximo: `spec-svc-observability` (rodada 6, ordem ARCHITECTURE §4) — consolida a telemetria já emitida pelos anteriores.
