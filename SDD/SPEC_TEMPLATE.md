@@ -64,6 +64,8 @@
 
 `<Stateless? Se stateful: schema, engine (SQLite WAL + busy_timeout=5000 é o padrão AIO), migrações, retenção. Artefatos de modelo (embeddings, thresholds calibrados): formato, onde vivem (volume, fora do git), como são gerados/regenerados.>`
 
+> **Isolamento de artefatos (lição da rodada 2):** artefatos escritos por eval-scripts (`evals/results/eval_*.json`) e payloads servidos por uma API (`GET /v1/results` e afins) NÃO podem compartilhar o mesmo diretório sem defesa — senão o leitor da API tropeça em arquivos de schema diferente (bug real: `KeyError`). Regra: (a) todo leitor de artefatos **filtra por schema** (ignora arquivo sem as chaves obrigatórias do payload), E/OU (b) diretórios separados por tipo. Testes/bench que escrevem artefatos usam `dir` temporário isolado.
+
 ## 7. Configuração (env — 12-factor)
 
 | Variável | Default | Obrigatória | Efeito |

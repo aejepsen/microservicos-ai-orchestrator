@@ -79,3 +79,37 @@ Segundo serviço construído com o template **já calibrado**. Veredito: templat
 ## Decisão
 
 Template robusto. **1 correção nova pendente** (isolamento de results_dir) — aplicar antes ou junto da rodada 3. Próximo: `spec-svc-inference` (rodada 3, ordem ARCHITECTURE §4).
+
+---
+
+# RETRO — Rodada 3 (svc-inference)
+
+Terceiro serviço; template com a correção de results_dir (§6) já aplicada. Veredito: F0→F7 até **G1–G8 todos PASS**, sem intervenção de lógica. Primeiro serviço com **dependência externa opcional** (Ollama) — o padrão FakeBackend/adapter provou-se.
+
+## Resultados
+
+| Gate | Resultado |
+|------|-----------|
+| G1 testes | 57 pass |
+| G2 compat OpenAI | 10/10 (bloqueante + stream + [DONE]) |
+| G3 tokens na fonte | 7/7 (usage → resposta e /metrics) |
+| G4 resiliência | 5/5 (circuito abre; 4xx não abre) |
+| G5 lint+mypy | limpo |
+| G6 contrato | OpenAPI válido |
+| G7 security | fail-closed OK |
+| G8 perf (overhead) | P95 1.9ms |
+
+## O que funcionou (padrões que viram norma)
+
+- **Backend fake vs real via Protocol**: gates 100% offline mesmo com o serviço existindo para falar com Ollama. É o mesmo molde do `judge` do svc-evals (fake/HTTP). Deve virar seção do template: "serviço com dependência externa → adapter + fake determinístico; gates usam fake".
+- **Correção de results_dir (rodada 2) bastou**: svc-inference não persiste artefatos servidos por API; nenhuma colisão. Não surgiu fricção nova de results_dir.
+- **Armadilha no golden** (4xx não abre circuito) pegou exatamente o tipo de bug sutil que a regra §12.7 existe para forçar.
+
+## Nova fricção (rodada 3)
+
+- **Ruído de log httpx** nos eval-scripts (TestClient loga cada request em INFO) — cosmético, resolvido com `logging.getLogger("httpx").setLevel(WARNING)` no conftest. **Candidato ao template**: conftest padrão já silencia httpx.
+- **StrEnum vs (str, Enum)**: ruff UP042 no 3.12. Trivial. Vale nota no template: usar `StrEnum` para enums serializados.
+
+## Decisão
+
+Método sólido em 3 serviços (guardrails, evals, inference). Padrão "adapter + fake" consolidado. Correções menores acumuladas (conftest silencia httpx; StrEnum) — aplicar ao template quando conveniente, não bloqueiam. Próximo: `spec-svc-router` (rodada 4, ordem ARCHITECTURE §4) — primeiro consumidor real de svc-inference + svc-guardrails.
