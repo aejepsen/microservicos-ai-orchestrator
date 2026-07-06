@@ -45,3 +45,37 @@ O template guiou a construção de ponta a ponta (F0→F7) até **G1–G8 todos 
 ## Decisão
 
 Método **aprovado para escala**. Aplicar as 5 correções ao `SPEC_TEMPLATE.md`, depois gerar `spec-svc-evals` (rodada 2, ordem em ARCHITECTURE §4).
+
+---
+
+# RETRO — Rodada 2 (svc-evals)
+
+Segundo serviço construído com o template **já calibrado**. Veredito: template sustentou a construção F0→F7 até **G1–G8 todos PASS**, sem intervenção de lógica.
+
+## Resultados
+
+| Gate | Resultado |
+|------|-----------|
+| G1 testes | 54 pass |
+| G2 motor de gate | 10/10 (bordas incl.) |
+| G3 scorers | 10/10 (recall@3 0.833, routing F1 1.0) |
+| G4 judge determinístico | faithfulness 0.975 |
+| G5 lint+mypy | limpo |
+| G6 contrato | OpenAPI válido |
+| G7 security | SSRF + fail-closed OK |
+| G8 perf | /results P95 1.6ms, runner 0.1ms |
+
+## O que as 5 correções do template evitaram
+
+- Repo criado direto no diretório final → **zero problema de venv/move** (a fricção nº1 do piloto não repetiu).
+- `per-file-ignores` de E501 já no pyproject → sobrou apenas lint de `src/` (8 linhas), corrigido rápido; nenhum ruído em tests/evals.
+- Gates classificados: svc-evals é todo rápido (sem modelo) → loop de iteração quase instantâneo.
+- Regra da "armadilha" no golden → dogfood de scorers já nasceu com casos-armadilha (contains_trap, recall fora do top-k).
+
+## Nova fricção (rodada 2)
+
+- **Colisão de artefatos no `results_dir`:** eval scripts e o `ResultsStore` compartilham `evals/results/`. Quebrou o G8 na 1ª execução (`KeyError: 'suite'`). Corrigido (DECISIONS D5). **Correção a levar ao template:** prescrever que artefatos de eval-script e payloads de rodada servidos pela API não compartilhem diretório, OU que todo leitor de resultados filtre por schema. Candidato a §6/§8.5 do template na próxima calibração.
+
+## Decisão
+
+Template robusto. **1 correção nova pendente** (isolamento de results_dir) — aplicar antes ou junto da rodada 3. Próximo: `spec-svc-inference` (rodada 3, ordem ARCHITECTURE §4).

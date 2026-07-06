@@ -27,8 +27,9 @@ Cada `svc-*` é um repositório git independente (contract-first; zero código c
 | Serviço | Status | Gates |
 |---------|--------|-------|
 | svc-guardrails | ✅ DONE (piloto) | G1–G8 todos PASS (ver svc-guardrails/README.md) |
-| svc-evals | 📝 spec frozen v1.0.0 (SDD/specs/spec-svc-evals.md) — pronta p/ build | — |
-| demais (5) | ⏳ aguardam spec (rodadas ≥3) | — |
+| svc-evals | ✅ DONE (rodada 2) | G1–G8 todos PASS (ver svc-evals/README.md) |
+| svc-inference | ⏳ próximo (rodada 3) | — |
+| demais (4) | ⏳ aguardam spec | — |
 
 **Regra do programa:** nenhuma spec nova antes do piloto passar todos os gates. O piloto (svc-guardrails) calibrou o template — as 5 correções da retrospectiva (`SDD/RETRO.md`) já estão aplicadas em `SDD/SPEC_TEMPLATE.md`. `spec-svc-evals` foi gerada a partir do template calibrado.
 
