@@ -113,3 +113,41 @@ Terceiro serviço; template com a correção de results_dir (§6) já aplicada. 
 ## Decisão
 
 Método sólido em 3 serviços (guardrails, evals, inference). Padrão "adapter + fake" consolidado. Correções menores acumuladas (conftest silencia httpx; StrEnum) — aplicar ao template quando conveniente, não bloqueiam. Próximo: `spec-svc-router` (rodada 4, ordem ARCHITECTURE §4) — primeiro consumidor real de svc-inference + svc-guardrails.
+
+---
+
+# RETRO — Rodada 4 (svc-router)
+
+Quarto serviço; template com as 4 correções menores da rodada 3 aplicadas (§8.5: adapter+fake, conftest silencia httpx, StrEnum). Primeiro serviço que **combina duas dependências** (SBERT local + adapter LLM) e o de **maior superfície** (BM25, RRF, embedder, guards, 3 camadas, LLM). Veredito: F0→F7 até **G1–G8 todos PASS**.
+
+## Resultados
+
+| Gate | Resultado |
+|------|-----------|
+| G1 testes | 55 pass |
+| G2 acurácia (SBERT) | 0.967 (29/30) |
+| G3 fusão RRF | 5/5 (à mão) |
+| G4 guards + armadilha | 6/6 |
+| G5 lint+mypy | limpo |
+| G6 contrato | OpenAPI válido |
+| G7 security | fail-closed + SSRF |
+| G8 perf overhead | P95 0.17ms |
+
+## O que os padrões do template evitaram / entregaram
+
+- **Adapter+fake em dobro** (embedder e LLM): gates rápidos usam Fake*, G2 usa SBERT real. O padrão §8.5 escalou para dois eixos sem atrito.
+- **conftest silencia httpx** já no template → saída limpa desde o começo.
+- **Guards com armadilha** pegou o caso "custo do produto" (não-finanças) e "ignore os pedidos" (não-guard) — exatamente o valor da §12.7.
+
+## Fricção real (rodada 4) — a mais séria até agora
+
+- **Background job roda em cwd default, não no cwd do serviço.** O comando de F0 (`touch models/.gitkeep && ... venv`) rodou fora do `svc-router`; o `&&` abortou no primeiro `touch` (dir `models/` inexistente) e o venv **nunca foi criado** — mas o job reportou "exit 0" porque a última instrução era um `echo`. Diagnóstico só apareceu ao tentar usar `.venv`. Custou uma rodada de depuração.
+  - **Correções a levar ao template/processo:** (1) F0 deve criar TODOS os diretórios (`models/`, `evals/results/`) no scaffold, antes de qualquer `touch`; (2) comandos de background devem usar **paths absolutos** e não depender de cwd; (3) terminar scripts de setup com o **código de saída real** (`exit $rc`), não um `echo`, para o status refletir a verdade. Candidato forte a uma seção "F0 robusto" no template.
+
+## Correção de escopo honesta
+
+- **svc-router não implementa spans OTel próprios** (DECISIONS D6): observabilidade via `/metrics` (by_layer) + logs; a instrumentação GenAI vive no svc-inference (que a camada LLM chama). Spans HTTP próprios → BACKLOG. Nenhum gate afetado.
+
+## Decisão
+
+4/7 DONE. Método robusto mesmo no serviço de maior superfície. **1 correção de processo importante** (F0 robusto: dirs no scaffold + paths absolutos + exit real) a aplicar ao template antes da rodada 5. Próximo: `spec-svc-rag` (rodada 5, ordem ARCHITECTURE §4).

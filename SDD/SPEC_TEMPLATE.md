@@ -98,6 +98,9 @@
 - **`ruff` line-length 100 no `src/`; `per-file-ignores` de `E501` para `tests/*` e `evals/*`** — asserts descritivos e prints de relatório de gate ficam legíveis inteiros (evita ~15 lints previsíveis por serviço). Regex longo recebe `# noqa: E501` pontual.
 - **Serviço com modelo (embedder/LLM local):** download **no build do Docker** + carga **no boot** do processo (lazy loading proibido — elimina cold start no 1º request). Degradação graceful se o modelo faltar (ver §8.4). Referência: `svc-guardrails/Dockerfile` + `State.__init__`.
 - **venv não é relocável:** `Makefile` invoca toda ferramenta como `.venv/bin/python -m <tool>` (não `.venv/bin/<tool>`, cujo shebang quebra se a pasta mover). Se o repo for movido após o F0, rodar `make venv` de novo.
+- **Dependência externa (backend LLM, serviço-alvo, embedder remoto):** modelar como **adapter atrás de interface** + um **fake determinístico**; os gates usam o fake (100% offline); o adapter real só em `make smoke` opcional. Padrão consolidado nas rodadas 2–3 (judge do svc-evals, backend do svc-inference). Nenhum gate pode exigir infra externa no ar (§9).
+- **`conftest.py` padrão silencia log ruidoso:** `logging.getLogger("httpx").setLevel(WARNING)` — TestClient loga cada request em INFO e polui a saída dos eval-scripts.
+- **Enums serializados usam `StrEnum`** (py3.12), não `(str, Enum)` — idioma correto, evita `ruff UP042`, mantém `.value` string no JSON.
 
 ## 9. Dependências
 
