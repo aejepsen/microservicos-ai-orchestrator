@@ -718,6 +718,35 @@ docker exec neo4j neo4j-admin restore ...
 kubectl rollout restart deployment/svc-orchestrator -n prod
 ```
 
+### 15.4 As-built (2026-07-07) — DR testado ponta a ponta
+
+**Entregue:** `scripts/backup.sh` + `scripts/restore.sh` + `scripts/dr_test.sh` + `make backup|restore|dr-test`. **Teste de DR real executado**, não só documentado: ingest canary → backup → apaga coleção (simula perda) → restore → confirma que o canary voltou via busca no svc-rag.
+
+**Resultado medido:** backup **0.78s**, restore **RTO 0.34s**, canary recuperado ✅. (Dados pequenos; o mecanismo é o que se valida — escala com o volume, não com a lógica.)
+
+**Estado persistente real do stack (o que precisa de backup):**
+
+| Componente | Estado | Estratégia | RTO | RPO |
+|---|---|---|---|---|
+| **Qdrant** (vetores RAG) | **único dado insubstituível** | snapshot API + `docker cp` → `./backups`, retenção 7 | **0.34s medido** (5min alvo) | = frequência do backup (cron diário → 24h) |
+| Grafana | dashboards/datasources | **versionados em git** (provisioning) | redeploy | 0 (git) |
+| Prometheus | métricas TSDB | lossy-ok | redeploy | perda tolerável |
+| Ollama | modelos | volume externo; redownload | 10min | N/A |
+| Jaeger | traces | efêmero (all-in-one, sem storage) | redeploy | lossy-ok |
+| svc-* | **stateless** | redeploy (imagem no GHCR) | 1min | N/A |
+
+**Decisões:**
+
+| # | Decisão | Razão |
+|---|---------|-------|
+| F15-D1 | **Neo4j removido do plano** | Não existe no stack (F9-D4); sem grafo, nada a backupar |
+| F15-D2 | **Backup local** (`BACKUP_DIR=./backups`) em vez de S3 | Sem conta AWS (F10-D1); destino é plugável — rsync/rclone/S3 por cima sem mudar o script. `backups/` no `.gitignore` |
+| F15-D3 | **Backup: snapshot API + `docker cp`** (não o download HTTP) | O endpoint `GET .../snapshots/{name}` retorna **0 bytes** nesta versão do Qdrant; os arquivos existem em `/qdrant/snapshots`, então copiamos direto. `chmod 644` no host (Qdrant cria 600) |
+| F15-D4 | **Restore: upload API** (multipart HTTP), não recover-from-local-file | `cap_drop: ALL` do hardening (SEC-01) tira `CAP_FOWNER` — nem root no container faz `chmod` de arquivo de outro uid vindo do `docker cp`. Upload via HTTP não toca o filesystem, contorna limpo. Segurança e recuperabilidade coexistem |
+| F15-D5 | **Só Qdrant tem backup de dados** | Único estado de negócio; resto recuperável do git (config) ou lossy-ok (métricas/traces). Menos superfície, menos a manter |
+
+**Agendamento (RPO):** `make backup` via cron diário dá RPO 24h (alvo do rascunho: 1h → reduzir intervalo se o negócio exigir). Fora do CI (precisa do stack no ar). Recovery real = `make restore` (sub-segundo), não `kubectl` (F11 skipped) nem S3 (F15-D2).
+
 ---
 
 ## FASE 16: Documentation & Runbooks (1 week)

@@ -1,8 +1,8 @@
 # STATUS EXECUTIVO — SDD 7 Serviços (Rodadas 1-7) + Roadmap 18 Fases
 
 **Data**: 2026-07-07
-**Status**: ✅ SDD · F8 E2E · F9 prod · F10 CI · ⏭️F11 · F12 observ · F13 sec · ✅ F14 load (baseline GPU)
-**Próxima fase**: FASE 15 — Disaster Recovery & Backup
+**Status**: ✅ SDD · F8 · F9 · F10 · ⏭️F11 · F12 · F13 · F14 · ✅ F15 DR/backup (testado)
+**Próxima fase**: FASE 16 — Documentation & Runbooks
 **Atualizado**: 2026-07-07 (pós-FASE 8)
 
 ---
@@ -123,10 +123,11 @@ msvc-e2e-svc-orchestrator:latest     247MB
 
 ### **Bloco 4: Resiliência & Documentação (Fases 15-17)**
 
-**Fase 15: Disaster Recovery** (1-2w)
-- RTO/RPO targets: Qdrant 5min/1h, Neo4j 5min/1h
-- Backup: daily snapshots to S3
-- Recovery procedures: restore script, failover playbook
+**Fase 15: Disaster Recovery** (1-2w) — ✅ CONCLUÍDA (2026-07-07, DR testado ponta a ponta; as-built NEXT_PHASES §15.4)
+- `scripts/backup.sh|restore.sh|dr_test.sh` + `make backup|restore|dr-test`
+- Teste real: ingest canary → backup → apaga → restore → canary recuperado
+- Medido: backup 0.78s, restore RTO 0.34s; só Qdrant (único dado insubstituível)
+- Backup local (sem S3, F15-D2); Neo4j fora (F9-D4); upload API contorna cap_drop (F15-D4)
 
 **Fase 16: Documentation & Runbooks** (1w)
 - DEPLOYMENT.md: passo-a-passo produção
