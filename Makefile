@@ -1,0 +1,26 @@
+# Stack de produção local (docker-compose.prod.yml)
+COMPOSE := docker compose -f docker-compose.prod.yml
+MODEL   ?= qwen2.5:3b
+
+.PHONY: up down ps logs model smoke-test clean
+
+up:            ## sobe o stack (build + detach)
+	$(COMPOSE) up -d --build
+
+down:          ## derruba o stack (mantém volumes)
+	$(COMPOSE) down
+
+ps:            ## status dos serviços
+	$(COMPOSE) ps
+
+logs:          ## logs agregados (follow)
+	$(COMPOSE) logs -f --tail=100
+
+model:         ## baixa o modelo no volume do Ollama
+	$(COMPOSE) exec ollama ollama pull $(MODEL)
+
+smoke-test:    ## valida o stack ponta a ponta
+	./scripts/smoke.sh
+
+clean:         ## derruba o stack E APAGA volumes (qdrant + ollama)
+	$(COMPOSE) down -v

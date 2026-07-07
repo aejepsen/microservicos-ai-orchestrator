@@ -1,8 +1,8 @@
 # STATUS EXECUTIVO — SDD 7 Serviços (Rodadas 1-7) + Roadmap 18 Fases
 
 **Data**: 2026-07-07
-**Status**: ✅ PROGRAMA SDD CONCLUÍDO (especificação + construção) · ✅ FASE 8 (E2E) CONCLUÍDA
-**Próxima fase**: FASE 9 — docker-compose de produção
+**Status**: ✅ PROGRAMA SDD CONCLUÍDO (especificação + construção) · ✅ FASE 8 (E2E) · ✅ FASE 9 (compose prod)
+**Próxima fase**: FASE 10 — CI/CD GitHub Actions
 **Atualizado**: 2026-07-07 (pós-FASE 8)
 
 ---
@@ -81,7 +81,7 @@ msvc-e2e-svc-orchestrator:latest     247MB
 - Traces em Jaeger → deferido p/ FASE 12 (DS-01)
 - P95 < 2s → N/A em CPU local; revalidar na FASE 14 c/ GPU
 
-**Fase 9: Docker Compose Produção** (1w)
+**Fase 9: Docker Compose Produção** (1w) — ✅ CONCLUÍDA (2026-07-07, smoke PASS; as-built em NEXT_PHASES §9.4)
 - docker-compose.yaml com Qdrant, Neo4j, Jaeger, Ollama
 - Networks isoladas, volumes para persistência
 - Health checks, restart policies

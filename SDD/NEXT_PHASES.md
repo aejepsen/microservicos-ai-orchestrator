@@ -197,6 +197,33 @@ make smoke-test  # roda após compose up (aguarda /health)
 # - Traces em Jaeger visíveis
 ```
 
+### 9.4 As-built (2026-07-07)
+
+**Entregue:** `docker-compose.prod.yml` + `.env.example` + `Makefile` (raiz) + `scripts/smoke.sh`.
+
+**Decisões (divergências do rascunho §9.1, com razão):**
+
+| # | Decisão | Razão |
+|---|---------|-------|
+| F9-D1 | **Modelo de referência: `qwen3.5-9b-orch`** (default de `MODEL` no compose e `.env.example`) | Mesmo modelo do AI-Orchestrator em produção (fine-tune próprio, 5.8 GB quantizado, 100% na GPU RTX 3060 12 GB). O 30b-a3b não cabe (transborda ~44% pra CPU); só foi usado no Colab para fine-tune. `qwen2.5:3b` fica restrito ao E2E (velocidade em CI/CPU). |
+| F9-D2 | **GPU passthrough no `ollama`** (`deploy.resources.reservations.devices: nvidia`) + `OLLAMA_NUM_PARALLEL=3`, `OLLAMA_FLASH_ATTENTION=1`, `KEEP_ALIVE=5m`, `mem 12g` | Espelha a config validada do AI-Orchestrator; 9b em CPU inviabiliza o P95. |
+| F9-D3 | **Volume Ollama externo compartilhado** (`ai-orchestrator_ollama_data`) | Modelos já baixados (~38 GB); duplicar volume = minutos de cópia + disco. Mesmo padrão do e2e. |
+| F9-D4 | **Neo4j fora do stack** | svc-rag não tem backend de grafo implementado (`GRAPHRAG_ENABLED` sem consumidor). Infra morta não sobe; entra quando DS-13/graph existir. |
+| F9-D5 | **Jaeger fora do stack** | OTel real deferido (DS-01, FASE 12); nenhum serviço exporta traces. Item "traces em Jaeger" do smoke (§9.3) migra pra FASE 12. |
+| F9-D6 | **Postgres fora do stack (por ora)** | DS-02/DS-03 ainda em SQLite; Postgres entra no compose junto com essas specs. |
+| F9-D7 | **Rede `backend` `internal: true`; portas públicas só 127.0.0.1** (8206 orchestrator, 8205 obs, 8204 rag-admin) | Qdrant/Ollama inacessíveis do host; superfície mínima. Ollama também na `edge` (sem porta publicada) só para egress de `ollama pull`. |
+| F9-D8 | **`INTERNAL_KEY`/`QDRANT_API_KEY` obrigatórias** (`${VAR:?}`) + Qdrant com `QDRANT__SERVICE__API_KEY` | Fail-closed: stack não sobe sem segredo definido. |
+| F9-D9 | **`HF_HUB_OFFLINE=1`** em guardrails/router/rag | Rede `internal` não resolve DNS; sem a flag, o hub do HF tenta HEAD no huggingface.co e derruba o load do SentenceTransformer mesmo com cache em `HF_HOME=/app/models`. Descoberto no primeiro smoke (router `degraded`, embedder down). |
+
+**Smoke (`make smoke-test`):** health agregado, ingest RAG (Qdrant real), chat RAG+LLM com asserts, SSE (`stream: true` → `text/event-stream`), injection → 403, sem chave → 401, refresh do observability.
+
+**Resultado: PASS (2026-07-07)** — GPU RTX 3060 detectada (CUDA, 11.6 GiB), `qwen3.5-9b-orch` servido pelo Ollama, chat com RAG respondeu com contexto (`context_used=2`), 5/5 upstreams raspados pelo observability. Query golden do smoke = mesma do E2E (`faturamento do trimestre` → domínio `financas`); a query original de reembolso roteava legitimamente pra `rh` (score 0.70 vs 0.55).
+
+**Validação de deploy (ciclo autônomo, 2026-07-07):**
+- Deploy limpo do zero (`down` → `up -d --build` → smoke): **PASS no ciclo 1**, 9/9 containers healthy — caminho frio reprodutível, sem correção manual.
+- Persistência: `restart qdrant svc-rag` + busca **sem re-ingest** → 2 hits recuperados do volume `qdrant_storage`. Critério "volumes para persistência" fechado.
+- Falhas encontradas e corrigidas durante a fase (registradas acima): embedder down por DNS na rede internal (→ F9-D9), assert de domínio errado no smoke herdado do e2e (→ query golden), escaping bash/python no assert inline (→ heredoc).
+
 ---
 
 ## FASE 10: CI/CD Pipeline (1-2 semanas)

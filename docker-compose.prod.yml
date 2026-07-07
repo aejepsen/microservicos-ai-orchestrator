@@ -1,0 +1,215 @@
+# Stack de produção local: 7 microsserviços + Ollama + Qdrant.
+# Uso: cp .env.example .env (editar chaves) && make up && make smoke-test
+#
+# Decisões (FASE 9):
+# - Neo4j fora do stack: svc-rag não possui backend de grafo (GRAPHRAG_ENABLED
+#   existe mas sem consumidor Neo4j); entra quando houver código que o use.
+# - Jaeger fora do stack: OTel real deferido para FASE 12 (DS-01); nenhum
+#   serviço exporta traces ainda. Infra morta não sobe.
+# - Portas públicas só em 127.0.0.1 (orchestrator, observability, rag-admin).
+#   Qdrant e Ollama vivem apenas na rede backend (internal: true).
+name: msvc-prod
+
+x-health: &py-health
+  interval: 10s
+  timeout: 5s
+  retries: 18
+  start_period: 15s
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-common: &svc-common
+  restart: unless-stopped
+  logging: *logging
+  networks:
+    - backend
+
+services:
+  # ---------- infra ----------
+  ollama:
+    <<: *svc-common
+    image: ollama/ollama:latest
+    networks:
+      - backend
+      - edge   # egress p/ `ollama pull`; nenhuma porta publicada
+    volumes:
+      - ollama_models:/root/.ollama
+    environment:
+      OLLAMA_KEEP_ALIVE: 5m
+      # Espelha AI-Orchestrator: fan-out multi-domínio decodifica em batch no
+      # mesmo modelo; flash attention acelera prefill (prompts 2-3k tokens).
+      OLLAMA_NUM_PARALLEL: 3
+      OLLAMA_FLASH_ATTENTION: 1
+    deploy:
+      resources:
+        limits:
+          memory: 12g
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      <<: *py-health
+
+  qdrant:
+    <<: *svc-common
+    image: qdrant/qdrant:latest
+    environment:
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:?defina QDRANT_API_KEY no .env}
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c ':> /dev/tcp/127.0.0.1/6333' || exit 1"]
+      <<: *py-health
+
+  # ---------- microsserviços ----------
+  svc-guardrails:
+    <<: *svc-common
+    build: ./svc-guardrails
+    image: msvc-prod-svc-guardrails:latest
+    environment:
+      INTERNAL_KEY: ${INTERNAL_KEY:?defina INTERNAL_KEY no .env}
+      HF_HUB_OFFLINE: "1"   # rede backend é internal; modelo ST vem do cache da imagem
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8200/health', timeout=3)"]
+      <<: *py-health
+
+  svc-evals:
+    <<: *svc-common
+    build: ./svc-evals
+    image: msvc-prod-svc-evals:latest
+    environment:
+      INTERNAL_KEY: ${INTERNAL_KEY}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8201/health', timeout=3)"]
+      <<: *py-health
+
+  svc-inference:
+    <<: *svc-common
+    build: ./svc-inference
+    image: msvc-prod-svc-inference:latest
+    environment:
+      INTERNAL_KEY: ${INTERNAL_KEY}
+      BACKEND: ollama
+      BACKEND_URL: http://ollama:11434
+      DEFAULT_MODEL: ${MODEL:-qwen3.5-9b-orch}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      ollama:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8202/health', timeout=3)"]
+      <<: *py-health
+
+  svc-router:
+    <<: *svc-common
+    build: ./svc-router
+    image: msvc-prod-svc-router:latest
+    environment:
+      INTERNAL_KEY: ${INTERNAL_KEY}
+      HF_HUB_OFFLINE: "1"
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8203/health', timeout=3)"]
+      <<: *py-health
+
+  svc-rag:
+    <<: *svc-common
+    build: ./svc-rag
+    image: msvc-prod-svc-rag:latest
+    networks:
+      - backend
+      - edge
+    ports:
+      - "127.0.0.1:8204:8204"   # admin: ingest de documentos
+    environment:
+      INTERNAL_KEY: ${INTERNAL_KEY}
+      VECTOR_STORE: qdrant
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_API_KEY: ${QDRANT_API_KEY}
+      ALLOW_LOCAL_STORE: "1"    # http interno da rede backend
+      HF_HUB_OFFLINE: "1"
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      qdrant:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8204/health', timeout=3)"]
+      <<: *py-health
+
+  svc-observability:
+    <<: *svc-common
+    build: ./svc-observability
+    image: msvc-prod-svc-observability:latest
+    networks:
+      - backend
+      - edge
+    ports:
+      - "127.0.0.1:8205:8205"
+    environment:
+      INTERNAL_KEY: ${INTERNAL_KEY}
+      UPSTREAM_KEY: ${INTERNAL_KEY}
+      ALLOW_LOCAL_UPSTREAM: "1"
+      SCRAPE_INTERVAL_S: "15"
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8205/health', timeout=3)"]
+      <<: *py-health
+
+  svc-orchestrator:
+    <<: *svc-common
+    build: ./svc-orchestrator
+    image: msvc-prod-svc-orchestrator:latest
+    networks:
+      - backend
+      - edge
+    ports:
+      - "127.0.0.1:8206:8206"   # entrada pública do stack
+    environment:
+      INTERNAL_KEY: ${INTERNAL_KEY}
+      DOWNSTREAM_KEY: ${INTERNAL_KEY}
+      ALLOW_LOCAL_DOWNSTREAM: "1"
+      HITL_ENABLED: "1"
+      DOWNSTREAM_TIMEOUT_S: "120"
+      CIRCUIT_FAIL_THRESHOLD: "5"
+      MODEL: ${MODEL:-qwen3.5-9b-orch}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      svc-guardrails:
+        condition: service_healthy
+      svc-router:
+        condition: service_healthy
+      svc-rag:
+        condition: service_healthy
+      svc-inference:
+        condition: service_healthy
+      svc-observability:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8206/health', timeout=3)"]
+      <<: *py-health
+
+volumes:
+  # Compartilhado com o AI-Orchestrator: modelos já baixados (qwen3.5-9b-orch
+  # etc.), sem duplicar ~38 GB de disco. Decisão registrada em NEXT_PHASES §9.4.
+  ollama_models:
+    external: true
+    name: ai-orchestrator_ollama_data
+  qdrant_storage:
+
+networks:
+  edge:
+    name: msvc-prod-edge
+    driver: bridge
+  backend:
+    name: msvc-prod-backend
+    driver: bridge
+    internal: true
