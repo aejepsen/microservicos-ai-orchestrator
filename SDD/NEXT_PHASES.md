@@ -854,6 +854,21 @@ Monitoring: Jaeger (16686) + Prometheus (9090) + Grafana (3000)
 2. Check if server crashed (logs, pod restarts)
 3. Client should reconnect; server tracks thread_id for resume
 
+### 17.2 As-built (2026-07-07)
+
+**Entregue:** `docs/OBSERVABILITY.md` — SOP de debugging via as três fontes (Jaeger/
+Prometheus/Grafana), método RED, **PromQL validado contra o Prometheus no ar**.
+
+Conteúdo real (não o rascunho, que citava Neo4j, "restart pod"/K8s e porta 8000):
+- **Método RED** mapeado às métricas reais do stack (Rate: `chats_total`/`routes_total`; Errors: `blocks_total`/circuit; Duration: `latency_ms_p95`).
+- **Trace debugging** no Jaeger — 8 serviços registrados; recipe por API para achar o hop lento (quase sempre `svc-inference`/GPU, esperado).
+- **PromQL** — 7 consultas, todas testadas. **Achado:** as métricas OTLP do `svc-inference` (`gen_ai.*`, `http.server.duration.*`) **já chegam no Prometheus** (F12-D2 funcionando) — dão RED fino.
+- **4 dashboards** + **4 alertas** documentados com o que respondem e a ação.
+
+**Decisão F17-D1:** nomes de métrica OTel têm ponto (`gen_ai.client.token.usage_sum`) — não são identificadores PromQL válidos; a doc usa a forma `{__name__="..."}`. Descoberto ao validar (2 queries falharam na forma ingênua, corrigidas).
+
+**Validação:** 7/7 PromQL → `success`; Jaeger `/api/traces` → traces reais; 4/4 alertas carregados no Prometheus.
+
 ---
 
 ## FASE 18: Long-term Roadmap (3+ months)

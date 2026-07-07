@@ -1,8 +1,8 @@
 # STATUS EXECUTIVO — SDD 7 Serviços (Rodadas 1-7) + Roadmap 18 Fases
 
 **Data**: 2026-07-07
-**Status**: ✅ SDD · F8 · F9 · F10 · ⏭️F11 · F12 · F13 · F14 · F15 · ✅ F16 docs/runbooks
-**Próxima fase**: FASE 17 — Observability Runbook (SOP)
+**Status**: ✅ SDD · F8-F10 · ⏭️F11 · F12-F16 · ✅ F17 observability SOP (só F18 backlog resta)
+**Próxima fase**: FASE 18 — roadmap longo prazo (backlog, não implementação)
 **Atualizado**: 2026-07-07 (pós-FASE 8)
 
 ---
@@ -135,7 +135,7 @@ msvc-e2e-svc-orchestrator:latest     247MB
 - SLA.md: uptime targets, escalation
 - API_REFERENCE.md: auto-generated Swagger + exemplos
 
-**Fase 17: Observability SOP** (1w)
+**Fase 17: Observability SOP** (1w) — ✅ CONCLUÍDA (2026-07-07, PromQL validado; as-built NEXT_PHASES §17.2)
 - Common issues: P95 spike, circuit stuck, OOD false positive, SSE interrupted
 - Debugging with Jaeger: spans por hop, trace_id lookup
 - Metric analysis: RED method (rate/errors/duration)

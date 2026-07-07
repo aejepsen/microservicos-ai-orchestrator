@@ -49,6 +49,7 @@ make smoke-test         # valida ponta a ponta (10 asserts)
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — topologia as-built, portas, redes, fluxo do `/v1/chat`
 - [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — deploy passo a passo, segredos, rollback
 - [`docs/RUNBOOK.md`](docs/RUNBOOK.md) — troubleshooting por sintoma (503/403/401/422, latência, circuito, OOD, recovery)
+- [`docs/OBSERVABILITY.md`](docs/OBSERVABILITY.md) — SOP de debugging via Jaeger/Prometheus/Grafana (método RED, PromQL, alertas)
 - [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md) — endpoints `/v1/` por serviço + exemplos
 - [`docs/SLA.md`](docs/SLA.md) — SLOs, RTO/RPO, resposta a incidentes
 - [`SDD/NEXT_PHASES.md`](SDD/NEXT_PHASES.md) — roadmap 18 fases com as-built de cada uma
