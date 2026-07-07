@@ -148,6 +148,7 @@
 | F4 | Auth + NFRs de segurança | G6 | fail-closed comprovado |
 | F5 | Observabilidade + /metrics + /health | `<smoke>` | telemetria verificada |
 | F6 | Evals completos + bench + docs (README do serviço) | G1–G6 todos | **DONE** |
+| F7 | **Reconciliação as-built** (obrigatória, aprendida na rodada 7): confrontar a spec congelada com a implementação — marcar o checklist da §14, escrever a seção **§15 As-built** (gates medidos + tabela spec×implementado) e registrar TODO desvio em `DECISIONS.md` (mesmo os que não quebram gate: feature declarada e não entregue, env extra, ordem de passos, shape de erro). Item adiado → `BACKLOG.md` | revisão da spec inteira × código | zero desvio não-registrado |
 
 ## 12. Regras para o agente (guardrails do processo)
 

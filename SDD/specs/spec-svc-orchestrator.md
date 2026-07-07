@@ -10,7 +10,7 @@
 |-------|-------|
 | Serviço | `svc-orchestrator` |
 | Versão da spec | 1.0.0 |
-| Status | **frozen** |
+| Status | **DONE** (as-built §15; congelada como frozen em 2026-07-06) |
 | Baseline de referência | AI-Orchestrator `fe3adc1` — `gateway/graph.py` (fan-out/fan-in LangGraph), `gateway/write_intent.py` (HITL), `gateway/tools/circuit.py`, `main.py` (SSE) |
 | Repo alvo | `~/Documentos/projeto-portifolio/microservicos-ai-orchestrator/svc-orchestrator` |
 | Data de congelamento | 2026-07-06 |
@@ -228,9 +228,49 @@ Erro interno: 500 genérico — stack só em log.
 
 ## 14. Definição de DONE
 
-- [ ] G1–G8 PASS na mesma execução; log em `evals/results/`
-- [ ] `docker compose up` (ecossistema) + smoke: `/v1/chat` multi-domínio produz eventos route→agent→final
-- [ ] README: como rodar/testar, **diagrama do fluxo**, tabela de gates com números medidos, exemplo chat + resume
-- [ ] `DECISIONS.md` com desvios; `BACKLOG.md` (histórico longo, spans OTel, LangGraph se algum dia necessário)
-- [ ] Zero secrets/artefatos no git
-- [ ] Entrada em `../RETRO.md` (rodada 7 — ENCERRAMENTO): retrospectiva final do programa SDD (7/7). O método entregou? custo total? o template está pronto para reuso em outros ecossistemas?
+- [x] G1–G8 PASS na mesma execução; log em `evals/results/`
+- [x] `docker compose up` (ecossistema) + smoke (opcional; `make smoke` + tests/test_smoke_ecosystem.py prontos): `/v1/chat` multi-domínio produz eventos route→agent→final
+- [x] README: como rodar/testar, **diagrama do fluxo**, tabela de gates com números medidos, exemplo chat + resume
+- [x] `DECISIONS.md` com desvios (D1–D9); `BACKLOG.md` (histórico longo, spans OTel, LangGraph se algum dia necessário)
+- [x] Zero secrets/artefatos no git
+- [x] Entrada em `../RETRO.md` (rodada 7 — ENCERRAMENTO): retrospectiva final do programa SDD (7/7). O método entregou? custo total? o template está pronto para reuso em outros ecossistemas?
+
+## 15. As-built (reconciliação pós-implementação — 2026-07-07)
+
+> Confronto da spec congelada com o que foi de fato construído. Desvios detalhados em
+> `DECISIONS.md` (D1–D9); itens adiados em `BACKLOG.md`. **Status: DONE — G1–G8 PASS.**
+
+### 15.1 Gates medidos (`make gates`, mesma execução)
+
+| Gate | Threshold | Medido |
+|------|-----------|--------|
+| G1 testes | 100% pass, ≥55 | **66 passed** (+3 skipped: smoke opcional) |
+| G2 fluxo | ordem correta, single/multi, block corta | **9/9 PASS** |
+| G3 HITL | escrita pausa; leitura/armadilha não; resume | **12/12 PASS** (armadilha "contas a pagar" não pausa) |
+| G4 SSE | route→agent→final; falha → `error`; guardrails fail-closed | **6/6 PASS** |
+| G5 lint+tipos | 0 erros | ruff limpo; mypy 0 erros (9 arquivos) |
+| G6 contrato | OpenAPI válido; toda rota testada | OK; 5 rotas exercitadas (test_contract.py, 7 testes) |
+| G7 security+trace | fail-closed, 401, SSRF, traceparent | PASS (test_security.py, 17 testes) |
+| G8 overhead | P95 < 50 ms | **P50 1.63 ms / P95 1.93 ms** (n=200, fakes, single) |
+
+### 15.2 Ajustes em relação à spec congelada
+
+| Item da spec | As-built | Ref |
+|--------------|----------|-----|
+| §5.3 fluxo: HITL como passo 4 (pós fan-out) | HITL **entre route e fan-out** (`sanitize → route → HITL → fan-out → fan-in`), coerente com §4 | D1 |
+| §7 config | + `CIRCUIT_RESET_S` (default 30) | D2 |
+| §8.4 downstream fora → 503 no passo | 503 para guardrails/router; **falha no fan-out/fan-in degrada** (placeholder por domínio / combinado bruto) | D3 |
+| §7/§8.4 deadline global → 504 | **não implementado no v1**; teto prático = `DOWNSTREAM_TIMEOUT_S` por chamada; 504 reservado no contrato | D4, BACKLOG |
+| §7 `OTEL_ENABLED` → OTLP | no-op; telemetria = /metrics + logs + traceparent W3C | D5, BACKLOG |
+| §11 F0 "CI" | sem workflow de CI (padrão do ecossistema; gates via `make gates`) | D6 |
+| §5.2 eventos SSE | + evento terminal `done: [DONE]` | D7 |
+| §5.4 `422 {error, detail, rule}` | 422 = validação FastAPI `{detail: array}`; `BusinessError` removido do contrato | D8 |
+| §12.4 ≥1 commit por fase | 1 commit inicial consolidado (convenção svc-rag) | D9 |
+
+### 15.3 Implementado conforme especificado (destaques)
+
+- Guardrails **fail-closed** (fora → 503, nunca segue sem análise); RAG opcional (fora/`RAG_ENABLED=0` → agente segue sem contexto).
+- Circuit breaker por downstream: 3 falhas de transporte → OPEN; **4xx não conta**; OPEN → 503 sem bater no downstream; `/health` expõe o estado dos 4 breakers.
+- `traceparent` W3C propagado aos 4 downstream (gerado quando ausente) — validado no G7.
+- Sem LangGraph (regra §12.6): saga em Python puro (`orchestrator.py`, ~180 linhas).
+- Auth interna fail-closed, `ALLOW_OPEN_ACCESS` dev-only, rate-limit por IP, SSRF guard nas URLs de downstream, Swagger off, 500 sem stack, eviction de threads (`MAX_THREADS`).

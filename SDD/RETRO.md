@@ -230,7 +230,7 @@ Sexto serviço; template com a correção de IP-literal (SSRF, §8.5) aplicada. 
 
 # RETRO — Rodada 7 (svc-orchestrator)
 
-Sétimo e ÚLTIMO serviço; o de integração — primeiro a encadear vários downstream (guardrails → router → rag → inference → guardrails-out). Veredito: F0→F7 até **G1–G8 todos PASS**, zero desvios da spec (DECISIONS vazio). Programa completo: 7/7 DONE.
+Sétimo e ÚLTIMO serviço; o de integração — primeiro a encadear vários downstream (guardrails → router → fan-out rag+inference → fan-in). Veredito: F0→F7 até **G1–G8 todos PASS**. Programa completo: 7/7 DONE. Após o DONE foi feita uma **reconciliação as-built** (nova etapa, ver Decisão): a spec congelada foi confrontada com a implementação e os desvios registrados — SPEC §15 (as-built) + DECISIONS D1–D9 (destaques: HITL movido para antes do fan-out, coerente com o glossário; deadline global/504 adiado para o BACKLOG; contrato 422 reconciliado com o shape real de validação; falha parcial no fan-out degrada em vez de derrubar).
 
 ## Resultados
 
@@ -255,6 +255,7 @@ Sétimo e ÚLTIMO serviço; o de integração — primeiro a encadear vários do
 ## Fricção nova (rodada 7)
 
 - Nenhuma de ambiente. Única nota: o `edit` em arquivo reordenado pelo `ruff --fix` exigiu releitura antes de editar — processo, não template.
+- **Descoberta da reconciliação as-built**: a spec congelada acumulou 9 desvios silenciosos até o DONE (nenhum quebrou gate, mas 2 eram contrato/feature declarados e não entregues: deadline→504 e OTLP). Sem o confronto final, ficariam invisíveis. **Correção institucionalizada no template §11**: F7 passa a incluir o passo "as-built" (confrontar spec × implementação, marcar §14, escrever §15 + DECISIONS).
 
 ## Decisão
 
