@@ -311,6 +311,25 @@ jobs:
 
 **Total pipeline:** ~15-20 min
 
+### 10.3 As-built (2026-07-07)
+
+**Entregue:** `.github/workflows/ci.yml` + `.github/compose-ci.yml`. **Run 28861233944: 15/15 jobs verdes na primeira execução, 20min18s** (dentro da meta).
+
+Pipeline real: `gates` (matrix 7 serviços, `make venv` + `make gates` G1–G8, cache pip+HF) → `smoke` (stack e2e completo no runner via `docker compose --wait`, `scripts/smoke.sh` 7 passos) → `publish` (7 imagens → GHCR, tags `sha`+`latest`, só em push na master).
+
+**Decisões (divergências do rascunho, com razão):**
+
+| # | Decisão | Razão |
+|---|---------|-------|
+| F10-D1 | **GHCR em vez de ECR** (`ghcr.io/aejepsen/svc-*`) | Sem conta AWS no projeto; GHCR autentica com `GITHUB_TOKEN` nativo — zero secret externo, zero custo. Único secret do pipeline inteiro. |
+| F10-D2 | **Smoke CI em CPU com `qwen2.5:0.5b`** (`E2E_MODEL`) | Runner sem GPU; asserts do smoke não dependem de qualidade de geração (domínio/RAG vêm do embedder, determinístico). Prod continua `qwen3.5-9b-orch`/GPU (F9-D1/D2). |
+| F10-D3 | **Override `.github/compose-ci.yml`** (volume Ollama `external: false`) | `docker-compose.e2e.yml` referencia volume externo da máquina dev (`ai-orchestrator_ollama_data`), inexistente no runner. |
+| F10-D4 | **`INTERNAL_KEY` efêmera por run** (`ci-smoke-key`) | Stack CI é descartável; secret fixo de repo seria superfície sem benefício. |
+| F10-D5 | **Free-disk no job smoke** (remove android/dotnet/ghc) | 7 imagens com torch+SBERT estouram o disco default do runner. |
+| F10-D6 | **Cache buildx `type=gha` por serviço** no publish | Rebuild incremental; jobs de publish com cache quente caem de ~10min pra <1min (medido: svc-evals/inference/observability/orchestrator 0-1min vs svc-rag 11min frio). |
+
+Tempos medidos: gates 0-3min/serviço, smoke 5min, publish 0-11min (frio). Bench G8 passou no runner (folga 10-25x dos thresholds locais confirmou margem).
+
 ---
 
 ## FASE 11: Kubernetes Deployment (2-3 semanas)
