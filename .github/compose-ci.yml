@@ -1,0 +1,5 @@
+# Override p/ CI: volume do Ollama local ao runner (sem volume externo da máquina dev).
+volumes:
+  ollama_models:
+    external: false
+    name: ci_ollama_models

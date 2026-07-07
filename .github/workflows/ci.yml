@@ -1,0 +1,130 @@
+# CI FASE 10: gates dos 7 serviços em paralelo → smoke E2E → publish GHCR.
+# Decisões em SDD/NEXT_PHASES.md §10 as-built (GHCR no lugar de ECR; smoke em
+# CPU com modelo pequeno — prod continua qwen3.5-9b-orch/GPU, FASE 9).
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    name: gates (${{ matrix.svc }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        svc:
+          - svc-guardrails
+          - svc-evals
+          - svc-inference
+          - svc-router
+          - svc-rag
+          - svc-observability
+          - svc-orchestrator
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-${{ matrix.svc }}-${{ hashFiles(format('{0}/pyproject.toml', matrix.svc)) }}
+
+      - name: Cache HuggingFace (modelos SBERT dos evals)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-${{ runner.os }}-${{ matrix.svc }}
+
+      - name: Instala dependências
+        run: make -C ${{ matrix.svc }} venv
+
+      - name: G1–G8 (lint, contract, test, evals, bench)
+        run: make -C ${{ matrix.svc }} gates
+
+  smoke:
+    name: smoke E2E (stack completo)
+    needs: gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      E2E_KEY: ci-smoke-key
+      E2E_MODEL: qwen2.5:0.5b   # CPU do runner; asserts não dependem de qualidade de geração
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Libera disco do runner (7 imagens + torch)
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup
+          df -h / | tail -1
+
+      - name: Sobe stack e2e
+        run: docker compose -f docker-compose.e2e.yml -f .github/compose-ci.yml up -d --build --wait
+
+      - name: Baixa modelo no Ollama
+        run: docker compose -f docker-compose.e2e.yml -f .github/compose-ci.yml exec -T ollama ollama pull "$E2E_MODEL"
+
+      - name: Smoke test
+        run: |
+          echo "INTERNAL_KEY=$E2E_KEY" > .env
+          ./scripts/smoke.sh
+
+      - name: Logs em caso de falha
+        if: failure()
+        run: docker compose -f docker-compose.e2e.yml -f .github/compose-ci.yml logs --tail=80
+
+  publish:
+    name: publish GHCR (${{ matrix.svc }})
+    needs: [gates, smoke]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        svc:
+          - svc-guardrails
+          - svc-evals
+          - svc-inference
+          - svc-router
+          - svc-rag
+          - svc-observability
+          - svc-orchestrator
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./${{ matrix.svc }}
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.svc }}:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.svc }}:latest
+          cache-from: type=gha,scope=${{ matrix.svc }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.svc }}
