@@ -102,6 +102,8 @@
 - **`conftest.py` padrão silencia log ruidoso:** `logging.getLogger("httpx").setLevel(WARNING)` — TestClient loga cada request em INFO e polui a saída dos eval-scripts.
 - **Enums serializados usam `StrEnum`** (py3.12), não `(str, Enum)` — idioma correto, evita `ruff UP042`, mantém `.value` string no JSON.
 - **Teste de SSRF-permitido usa IP público literal** (ex.: `8.8.8.8`), **não hostname** (`example.com`) — o guard resolve host via `getaddrinfo`; ambiente de gate pode não ter DNS e o guard (corretamente) recusa o que não resolve, quebrando o teste do caso "permitido". IP literal não exige DNS. (Rodada 5.)
+- **BACKLOG do template — `app = create_app()` no nível do módulo** dispara `State.__init__` (e a carga do modelo, em serviços com SBERT) no **import**. Funciona e passa gates, mas acopla import a boot. Opção futura: factory lazy. Não-bloqueante. (Rodada 6.)
+- **Tracing distribuído entre serviços** (quando um serviço chama outros): propagar o header **`traceparent` (W3C)** para os downstream + incluí-lo nos logs. Decidido na rodada 7 (svc-orchestrator é o primeiro a encadear vários serviços); serviços folha (sem downstream) não precisam. Spans OTel completos → BACKLOG por serviço (ver D7 do svc-rag).
 
 ## 9. Dependências
 

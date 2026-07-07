@@ -225,3 +225,37 @@ Sexto serviço; template com a correção de IP-literal (SSRF, §8.5) aplicada. 
 ## Decisão
 
 6/7 DONE. Template maduro — 4 rodadas sem fricção de lógica, só polimento. Único item aberto (import-time `create_app()`) é não-bloqueante, vai pro BACKLOG do template. Próximo e ÚLTIMO: `spec-svc-orchestrator` (rodada 7, ordem ARCHITECTURE §4) — integra tudo (grafo fan-out/fan-in, HITL, SSE); é o teste de integração do ecossistema. Primeiro serviço que consome vários dos outros ao mesmo tempo (guardrails + router + rag + inference).
+
+---
+
+# RETRO — Rodada 7 (svc-orchestrator)
+
+Sétimo e ÚLTIMO serviço; o de integração — primeiro a encadear vários downstream (guardrails → router → rag → inference → guardrails-out). Veredito: F0→F7 até **G1–G8 todos PASS**, zero desvios da spec (DECISIONS vazio). Programa completo: 7/7 DONE.
+
+## Resultados
+
+| Gate | Resultado |
+|------|-----------|
+| G1 testes | 66 pass (gate ≥55) |
+| G2 fluxo saga | 9/9 (ordem, guardrails fail-closed, RAG opcional, circuit breaker) |
+| G3 HITL | 12/12 (pause/resume, armadilha "contas a pagar" NÃO pausa) |
+| G4 SSE | 6/6 (eventos ordenados, done terminal, erro vira evento) |
+| G5 lint+mypy | limpo (2 fixes: import sort, unused type-ignore) |
+| G6 contrato | OpenAPI válido, 5 rotas exercitadas |
+| G7 security | fail-closed + SSRF + rate-limit + traceparent W3C |
+| G8 chat e2e (fakes) | P50 1.63ms / P95 1.93ms (gate <50ms) |
+
+## O que funcionou
+
+- **Saga explícita sem LangGraph**: o fluxo do `graph.py` do baseline virou orquestração sequencial legível (~200 linhas) com FakeClients por downstream — gates 100% offline, integração real fica no `make smoke`.
+- **traceparent W3C fim-a-fim** (nova regra do template, decidida nesta rodada): propagado/gerado e validado em teste contra os 4 fakes — primeira rodada em que tracing entre serviços é observável.
+- **Circuit breaker só conta falha de transporte** (4xx não abre): invariante do baseline preservado e testado; armadilha HITL (§12.7) pegou o ponto central de novo — "contas a pagar" em contexto de leitura não pausa.
+- **Template curado**: nenhuma fricção de ambiente — todas as correções acumuladas (F0 robusto, conftest httpx, IP literal SSRF, StrEnum) valeram de novo. 5ª rodada seguida sem fricção de lógica.
+
+## Fricção nova (rodada 7)
+
+- Nenhuma de ambiente. Única nota: o `edit` em arquivo reordenado pelo `ruff --fix` exigiu releitura antes de editar — processo, não template.
+
+## Decisão
+
+**7/7 DONE — programa SDD encerrado.** Os 7 microserviços extraídos do baseline AI-Orchestrator estão com G1–G8 PASS cada um, contratos OpenAPI válidos, segurança fail-closed uniforme e tracing propagado no serviço integrador. Itens abertos consolidados nos BACKLOGs por serviço (spans OTel completos, factory lazy do `create_app`, integração real via smoke no compose do ecossistema).
