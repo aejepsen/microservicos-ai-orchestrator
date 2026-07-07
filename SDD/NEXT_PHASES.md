@@ -898,6 +898,19 @@ Conteúdo real (não o rascunho, que citava Neo4j, "restart pod"/K8s e porta 800
 - Throughput: 1000+ req/s (horizontal scaling, load testing)
 - Cost per 1M tokens: target 50% reduction via caching + quantization
 
+### 18.4 As-built (2026-07-07) — backlog formalizado
+
+**Entregue:** `SDD/BACKLOG_PROGRAMA.md` — a FASE 18 formalizada como **backlog priorizado**, não implementação (é evolução de meses). Duas correntes:
+
+- **Corrente A** — 15 decisões deferidas em aberto (DS-02..DS-17; DS-01 resolvida na F12, DS-05 na F10) — aprimoramentos dos 7 serviços, já com contrato/gates em `DEFERRED_SPECS.md`.
+- **Corrente B** — 6 serviços novos (§18.1), com **spec-esboços SDD condensados** (objetivo, não-objetivos, contrato-núcleo, dependências, gates-chave): svc-cache, svc-auth, svc-audit, svc-analytics, svc-admin, svc-webhook.
+
+**Priorização em tiers** (valor × 1/esforço, respeitando dependências): P0 fundação (DS-02 Postgres, DS-04 deadline) → P1 alto valor autônomo (svc-cache, DS-08/09/06) → P2 gateado (svc-auth, DS-03+16, DS-13, DS-11) → P3 posterior (svc-audit/analytics/admin/webhook, DS-10/12/14/15/17). Grafo de dependências + ordem de construção no doc.
+
+**Consistência validada:** 15/15 DS abertos alocados num tier; 6/6 serviços novos esboçados; DS-01/DS-05 marcados resolvidos (não reaparecem como abertos).
+
+**Roadmap encerrado.** Fases 8-10 e 12-17 concluídas; 11 skipped; 18 formalizada. Sistema operacional completo; evolução daqui é incremental pelo mesmo método SDD.
+
 ---
 
 ## Summary: 18 Phases Timeline

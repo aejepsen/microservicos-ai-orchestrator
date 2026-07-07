@@ -126,7 +126,7 @@
 
 ---
 
-## DS-05 — CI de ecossistema
+## DS-05 — CI de ecossistema — ✅ RESOLVIDA (FASE 10, 2026-07-07; GitHub Actions + GHCR, NEXT_PHASES §10.3)
 
 **Origem exata:** svc-orchestrator DECISIONS **D6** — nenhum repo tem CI; adiado como preocupação de ecossistema.
 

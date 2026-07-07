@@ -1,8 +1,8 @@
 # STATUS EXECUTIVO — SDD 7 Serviços (Rodadas 1-7) + Roadmap 18 Fases
 
 **Data**: 2026-07-07
-**Status**: ✅ SDD · F8-F10 · ⏭️F11 · F12-F16 · ✅ F17 observability SOP (só F18 backlog resta)
-**Próxima fase**: FASE 18 — roadmap longo prazo (backlog, não implementação)
+**Status**: ✅ ROADMAP ENCERRADO — F8-10+12-17 DONE · ⏭️F11 skip · F18 backlog formalizado
+**Próxima fase**: nenhuma — evolução incremental via SDD/BACKLOG_PROGRAMA.md
 **Atualizado**: 2026-07-07 (pós-FASE 8)
 
 ---
@@ -142,7 +142,7 @@ msvc-e2e-svc-orchestrator:latest     247MB
 
 ### **Bloco 5: Evolução Futura (Fase 18+)**
 
-**Fase 18: Long-term Roadmap** (3m+)
+**Fase 18: Long-term Roadmap** (3m+) — ✅ FORMALIZADA como backlog priorizado (2026-07-07, SDD/BACKLOG_PROGRAMA.md; as-built NEXT_PHASES §18.4)
 - **svc-cache** (Redis): query results, embeddings, route decisions
 - **svc-auth** (OAuth2/OIDC): user identity, RBAC, multi-tenancy
 - **svc-audit** (imutable log): compliance, forensics, billing
