@@ -1,0 +1,7 @@
+apiVersion: 1
+providers:
+  - name: msvc
+    folder: AI-Orchestrator MSVC
+    type: file
+    options:
+      path: /var/lib/grafana/dashboards

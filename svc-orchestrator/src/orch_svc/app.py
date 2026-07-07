@@ -13,6 +13,7 @@ from typing import Any
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
+from orch_svc import otel
 from orch_svc.clients import (
     HttpGuardrails,
     HttpInference,
@@ -201,6 +202,7 @@ def create_app(settings: Settings | None = None, state: State | None = None) -> 
             latency_ms_p50=round(p50, 2), latency_ms_p95=round(p95, 2),
         )
 
+    otel.init_tracing(app, settings)
     return app
 
 

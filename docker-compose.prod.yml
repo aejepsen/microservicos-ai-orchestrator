@@ -68,6 +68,63 @@ services:
       test: ["CMD-SHELL", "bash -c ':> /dev/tcp/127.0.0.1/6333' || exit 1"]
       <<: *py-health
 
+  # ---------- observabilidade (FASE 12) ----------
+  jaeger:
+    <<: *svc-common
+    image: jaegertracing/all-in-one:1.62.0
+    networks:
+      - backend
+      - edge
+    ports:
+      - "127.0.0.1:16686:16686"   # UI de traces
+      - "127.0.0.1:4318:4318"     # OTLP local (dev/bench fora do compose)
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+
+  prometheus:
+    <<: *svc-common
+    image: prom/prometheus:v3.4.0
+    networks:
+      - backend
+      - edge
+    ports:
+      - "127.0.0.1:9090:9090"
+    environment:
+      INTERNAL_KEY: ${INTERNAL_KEY}
+    volumes:
+      - ./observability/prometheus:/etc/prometheus:ro
+      - prometheus_data:/prometheus
+    # Chave vai pra arquivo (scrape autenticado via http_headers); imagem é busybox.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >
+        printf '%s' "$$INTERNAL_KEY" > /tmp/internal-key &&
+        exec /bin/prometheus
+        --config.file=/etc/prometheus/prometheus.yml
+        --storage.tsdb.path=/prometheus
+        --web.enable-otlp-receiver
+
+  grafana:
+    <<: *svc-common
+    image: grafana/grafana:11.6.0
+    networks:
+      - backend
+      - edge
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:?defina GRAFANA_PASSWORD no .env}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - jaeger
+
   # ---------- microsserviços ----------
   svc-guardrails:
     <<: *svc-common
@@ -76,6 +133,8 @@ services:
     environment:
       INTERNAL_KEY: ${INTERNAL_KEY:?defina INTERNAL_KEY no .env}
       HF_HUB_OFFLINE: "1"   # rede backend é internal; modelo ST vem do cache da imagem
+      OTEL_ENABLED: "1"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8200/health', timeout=3)"]
@@ -87,6 +146,8 @@ services:
     image: msvc-prod-svc-evals:latest
     environment:
       INTERNAL_KEY: ${INTERNAL_KEY}
+      OTEL_ENABLED: "1"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8201/health', timeout=3)"]
@@ -101,6 +162,10 @@ services:
       BACKEND: ollama
       BACKEND_URL: http://ollama:11434
       DEFAULT_MODEL: ${MODEL:-qwen3.5-9b-orch}
+      # Métricas GenAI (token usage/TTFT) vão pro Prometheus via OTLP receiver
+      OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: http://prometheus:9090/api/v1/otlp/v1/metrics
+      OTEL_ENABLED: "1"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     depends_on:
       ollama:
@@ -116,6 +181,8 @@ services:
     environment:
       INTERNAL_KEY: ${INTERNAL_KEY}
       HF_HUB_OFFLINE: "1"
+      OTEL_ENABLED: "1"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8203/health', timeout=3)"]
@@ -137,6 +204,8 @@ services:
       QDRANT_API_KEY: ${QDRANT_API_KEY}
       ALLOW_LOCAL_STORE: "1"    # http interno da rede backend
       HF_HUB_OFFLINE: "1"
+      OTEL_ENABLED: "1"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     depends_on:
       qdrant:
@@ -159,6 +228,8 @@ services:
       UPSTREAM_KEY: ${INTERNAL_KEY}
       ALLOW_LOCAL_UPSTREAM: "1"
       SCRAPE_INTERVAL_S: "15"
+      OTEL_ENABLED: "1"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8205/health', timeout=3)"]
@@ -181,6 +252,8 @@ services:
       DOWNSTREAM_TIMEOUT_S: "120"
       CIRCUIT_FAIL_THRESHOLD: "5"
       MODEL: ${MODEL:-qwen3.5-9b-orch}
+      OTEL_ENABLED: "1"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     depends_on:
       svc-guardrails:
@@ -204,6 +277,8 @@ volumes:
     external: true
     name: ai-orchestrator_ollama_data
   qdrant_storage:
+  prometheus_data:
+  grafana_data:
 
 networks:
   edge:

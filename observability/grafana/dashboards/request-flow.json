@@ -1,0 +1,185 @@
+{
+ "uid": "msvc-flow",
+ "title": "MSVC \u2014 Request Flow",
+ "schemaVersion": 39,
+ "version": 1,
+ "time": {
+  "from": "now-1h",
+  "to": "now"
+ },
+ "refresh": "30s",
+ "panels": [
+  {
+   "title": "Chats (orchestrator)",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 8,
+    "h": 8
+   },
+   "targets": [
+    {
+     "expr": "chats_total",
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom"
+     },
+     "legendFormat": "{{service}}"
+    }
+   ]
+  },
+  {
+   "title": "Fluxo por servi\u00e7o",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom"
+   },
+   "gridPos": {
+    "x": 8,
+    "y": 0,
+    "w": 16,
+    "h": 8
+   },
+   "targets": [
+    {
+     "expr": "analyses_total",
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom"
+     },
+     "legendFormat": "guardrails analyses"
+    },
+    {
+     "expr": "routes_total",
+     "refId": "B",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom"
+     },
+     "legendFormat": "router routes"
+    },
+    {
+     "expr": "searches_total",
+     "refId": "C",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom"
+     },
+     "legendFormat": "rag searches"
+    },
+    {
+     "expr": "requests_total{service=\"svc-inference\"}",
+     "refId": "D",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom"
+     },
+     "legendFormat": "inference requests"
+    }
+   ]
+  },
+  {
+   "title": "Roteamento por camada",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 8,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "expr": "by_layer_semantic",
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom"
+     },
+     "legendFormat": "semantic"
+    },
+    {
+     "expr": "by_layer_lexical",
+     "refId": "B",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom"
+     },
+     "legendFormat": "lexical"
+    },
+    {
+     "expr": "by_layer_llm",
+     "refId": "C",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom"
+     },
+     "legendFormat": "llm"
+    },
+    {
+     "expr": "by_layer_fallback",
+     "refId": "D",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom"
+     },
+     "legendFormat": "fallback"
+    }
+   ]
+  },
+  {
+   "title": "Tokens do ecossistema",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 8,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "expr": "ecosystem_tokens_total",
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom"
+     },
+     "legendFormat": "total"
+    },
+    {
+     "expr": "tokens_input_total",
+     "refId": "B",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom"
+     },
+     "legendFormat": "input"
+    },
+    {
+     "expr": "tokens_output_total",
+     "refId": "C",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom"
+     },
+     "legendFormat": "output"
+    }
+   ]
+  }
+ ]
+}

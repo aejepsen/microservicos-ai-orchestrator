@@ -20,7 +20,7 @@ def test_refresh(client, auth_headers) -> None:
     r = client.post("/v1/refresh", headers=auth_headers)
     assert r.status_code == 200
     b = r.json()
-    assert b["ok"] == 5 and b["failed"] == 0
+    assert b["ok"] == 6 and b["failed"] == 0
 
 
 def test_eval_ingest_shows_in_overview(client, auth_headers) -> None:
@@ -42,7 +42,7 @@ def test_prometheus_text(client, auth_headers) -> None:
 
 def test_health_ok_when_all_up(client) -> None:
     b = client.get("/health").json()
-    assert b["deps"]["upstreams_up"] == 5
+    assert b["deps"]["upstreams_up"] == 6
     assert b["status"] == "ok"
 
 
@@ -51,4 +51,4 @@ def test_metrics(client, auth_headers) -> None:
     m = client.get("/metrics", headers=auth_headers).json()
     assert m["source"] == "live"
     assert m["overviews_total"] >= 1
-    assert m["upstreams_up"] == 5
+    assert m["upstreams_up"] == 6

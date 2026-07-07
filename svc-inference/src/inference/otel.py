@@ -59,3 +59,37 @@ def record_llm_call(
             _ttft_hist.record(ttft_s, attrs)
     except Exception as exc:  # noqa: BLE001
         logger.debug("OTel record falhou (ignorado): %s", exc)
+
+
+def init_tracing(app: Any, settings: Any) -> bool:
+    """DS-01 — spans OTLP (FastAPI server + httpx client). No-op se OTEL_ENABLED=0."""
+    if not getattr(settings, "otel_enabled", False):
+        return False
+    try:
+        import os
+
+        from opentelemetry import trace
+        from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+        from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+        from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+        from opentelemetry.sdk.resources import Resource
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.trace.export import BatchSpanProcessor
+        from opentelemetry.sdk.trace.sampling import ParentBased, TraceIdRatioBased
+
+        ratio = float(os.environ.get("OTEL_TRACES_SAMPLER_ARG", "1.0"))
+        resource = Resource.create(
+            {"service.name": os.environ.get("OTEL_SERVICE_NAME", "svc-inference")}
+        )
+        provider = TracerProvider(
+            resource=resource, sampler=ParentBased(TraceIdRatioBased(ratio))
+        )
+        provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter()))
+        trace.set_tracer_provider(provider)
+        FastAPIInstrumentor.instrument_app(app, excluded_urls="health,metrics")
+        HTTPXClientInstrumentor().instrument()
+        logger.info("OTel traces ativo")
+        return True
+    except Exception as exc:  # noqa: BLE001 — degradação graceful (DS-01)
+        logger.warning("OTel traces indisponivel (no-op): %s", exc)
+        return False

@@ -1,8 +1,8 @@
 # STATUS EXECUTIVO — SDD 7 Serviços (Rodadas 1-7) + Roadmap 18 Fases
 
 **Data**: 2026-07-07
-**Status**: ✅ SDD CONCLUÍDO · ✅ FASE 8 (E2E) · ✅ FASE 9 (compose prod) · ✅ FASE 10 (CI/CD)
-**Próxima fase**: FASE 11 — Kubernetes/Helm
+**Status**: ✅ SDD · ✅ F8 E2E · ✅ F9 compose prod · ✅ F10 CI/CD · ⏭️ F11 skipped · ✅ F12 observability (DS-01)
+**Próxima fase**: FASE 13 — Security Hardening
 **Atualizado**: 2026-07-07 (pós-FASE 8)
 
 ---
@@ -94,13 +94,13 @@ msvc-e2e-svc-orchestrator:latest     247MB
 
 ### **Bloco 2: Infraestrutura & Observabilidade (Fases 11-12)**
 
-**Fase 11: Kubernetes Helm Charts** (2-3w)
+**Fase 11: Kubernetes Helm Charts** (2-3w) — ⏭️ SKIPPED (2026-07-07; sem cluster alvo, ver NEXT_PHASES §12.4)
 - Deployments (3 replicas), services, configmaps, secrets, ingress
 - Network policies (Qdrant/Neo4j isolados)
 - Auto-scaling HPA (CPU 70%, memória 80%)
 - Rolling updates + pod disruption budgets
 
-**Fase 12: Observability Stack** (1-2w)
+**Fase 12: Observability Stack** (1-2w) — ✅ CONCLUÍDA (2026-07-07, DS-01 resolvida, smoke 10/10; as-built NEXT_PHASES §12.4)
 - Jaeger: traces distribuídos W3C propagados
 - Prometheus: métricas por serviço + agregadas
 - Grafana: 4 dashboards (health, request flow, dependencies, security)

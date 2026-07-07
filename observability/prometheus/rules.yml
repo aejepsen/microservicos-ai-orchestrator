@@ -1,0 +1,29 @@
+groups:
+  - name: msvc-alerts
+    rules:
+      - alert: AggregatorDown
+        expr: up{job="msvc-ecosystem"} == 0
+        for: 1m
+        labels: {severity: critical}
+        annotations:
+          summary: "svc-observability fora do ar — ecossistema sem telemetria"
+
+      - alert: ServiceScrapeStale
+        expr: count by (service) (latency_ms_p95{stale="true"}) > 0
+        for: 2m
+        labels: {severity: warning}
+        annotations:
+          summary: "{{ $labels.service }} servindo métricas stale (upstream down)"
+
+      - alert: LatencySpikeP95
+        expr: latency_ms_p95{service!~"ecosystem|svc-orchestrator",stale="false"} > 5000
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: "{{ $labels.service }} P95 acima de 5s por 5min"
+
+      - alert: InjectionBurst
+        expr: delta(blocks_total{service="svc-guardrails"}[10m]) > 10
+        labels: {severity: critical}
+        annotations:
+          summary: "Rajada de prompt injection bloqueada (>10 em 10min)"

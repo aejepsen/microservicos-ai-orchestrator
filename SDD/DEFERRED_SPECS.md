@@ -36,7 +36,7 @@
 
 ---
 
-## DS-01 — OTel real: exporter OTLP + spans HTTP próprios
+## DS-01 — OTel real: exporter OTLP + spans HTTP próprios — ✅ RESOLVIDA (FASE 12, 2026-07-07; as-built NEXT_PHASES §12.4)
 
 **Origem exata:**
 - svc-router DECISIONS **D6**: `OTEL_ENABLED` existe mas é no-op (sem exporter real).

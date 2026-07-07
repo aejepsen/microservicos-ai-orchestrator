@@ -11,6 +11,7 @@ from typing import Any
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
+from rag_svc import otel
 from rag_svc.community import CommunityStore
 from rag_svc.config import VERSION, Settings, load_settings
 from rag_svc.embedder import FakeEmbedder, SbertEmbedder
@@ -189,6 +190,7 @@ def create_app(settings: Settings | None = None, state: State | None = None) -> 
             latency_ms_p50=round(p50, 2), latency_ms_p95=round(p95, 2),
         )
 
+    otel.init_tracing(app, settings)
     return app
 
 

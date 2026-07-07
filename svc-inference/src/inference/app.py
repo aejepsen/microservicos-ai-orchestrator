@@ -174,6 +174,7 @@ def create_app(settings: Settings | None = None, state: State | None = None) -> 
             circuit_state=st.breaker.state.value,
         )
 
+    otel.init_tracing(app, settings)
     return app
 
 

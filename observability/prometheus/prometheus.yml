@@ -1,0 +1,18 @@
+# Raspa SÓ o agregador (svc-observability /v1/prometheus) — respeita a decisão
+# D1 do serviço: ele é o ponto único de agregação do ecossistema.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - rules.yml
+
+scrape_configs:
+  - job_name: msvc-ecosystem
+    metrics_path: /v1/prometheus
+    http_headers:
+      X-Internal-Key:
+        files:
+          - /tmp/internal-key
+    static_configs:
+      - targets: ["svc-observability:8205"]

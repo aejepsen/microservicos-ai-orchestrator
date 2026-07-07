@@ -11,6 +11,7 @@ from typing import Any
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 
+from obs_svc import otel
 from obs_svc.aggregator import Aggregator
 from obs_svc.config import VERSION, Settings, load_settings
 from obs_svc.prometheus import render
@@ -134,6 +135,7 @@ def create_app(settings: Settings | None = None, state: State | None = None) -> 
             latency_ms_p50=round(p50, 2), latency_ms_p95=round(p95, 2),
         )
 
+    otel.init_tracing(app, settings)
     return app
 
 

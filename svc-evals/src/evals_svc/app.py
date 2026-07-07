@@ -13,6 +13,7 @@ from typing import Any
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
+from evals_svc import otel
 from evals_svc.config import VERSION, Settings, load_settings
 from evals_svc.judge import HttpJudge, score_llm_judge
 from evals_svc.results_store import ResultsStore
@@ -222,6 +223,7 @@ def create_app(settings: Settings | None = None, state: State | None = None) -> 
             latency_ms_p50=round(p50, 2), latency_ms_p95=round(p95, 2),
         )
 
+    otel.init_tracing(app, settings)
     return app
 
 

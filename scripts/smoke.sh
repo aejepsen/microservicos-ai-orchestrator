@@ -77,6 +77,47 @@ code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$ORCH/v1/chat" -H "Conten
 step "7. observability raspa os upstreams reais"
 curl -sf -X POST "$OBS/v1/refresh" -H "X-Internal-Key: $KEY" | python3 -m json.tool || fail=1
 
+# FASE 12 — pilha de observabilidade (pulável fora do stack prod: SKIP_OBS_STACK=1)
+if [ "${SKIP_OBS_STACK:-0}" != "1" ]; then
+JAEGER="http://127.0.0.1:16686"
+PROM="http://127.0.0.1:9090"
+GRAFANA="http://127.0.0.1:3000"
+
+step "8. G-OTEL-2: trace distribuído no Jaeger (5 serviços encadeados)"
+sleep 8   # flush do BatchSpanProcessor
+curl -sf "$JAEGER/api/traces?service=svc-orchestrator&limit=10&lookback=1h" > /tmp/smoke_traces.json \
+  && python3 - <<'PY' || fail=1
+import json
+data = json.load(open("/tmp/smoke_traces.json"))["data"]
+assert data, "nenhum trace do svc-orchestrator no Jaeger"
+want = {"svc-orchestrator", "svc-guardrails", "svc-router", "svc-rag", "svc-inference"}
+best = max(
+    ({p["serviceName"] for p in t["processes"].values()} for t in data),
+    key=lambda s: len(s & want),
+)
+missing = want - best
+assert not missing, f"trace incompleto, faltam: {missing} (achou {best})"
+print(f"ASSERT OK: trace unico com {len(best & want)}/5 servicos encadeados")
+PY
+
+step "9. Prometheus raspando o agregador"
+curl -sf -G "$PROM/api/v1/query" --data-urlencode 'query=up{job="msvc-ecosystem"}' -o /tmp/smoke_prom.json \
+  && python3 - <<'PY' || fail=1
+import json
+r = json.load(open("/tmp/smoke_prom.json"))["data"]["result"]
+assert r and r[0]["value"][1] == "1", f"target down ou ausente: {r}"
+print("ASSERT OK: up{job=msvc-ecosystem} == 1")
+PY
+
+step "10. Grafana no ar com datasources provisionados"
+curl -sf "$GRAFANA/api/health" | python3 -c '
+import json, sys
+h = json.load(sys.stdin)
+assert h["database"] == "ok", h
+print("ASSERT OK: grafana database ok")
+' || fail=1
+fi
+
 echo
 [ "$fail" = "0" ] && echo "=== SMOKE PROD: PASS ===" || echo "=== SMOKE PROD: FAIL ==="
 exit "$fail"

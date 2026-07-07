@@ -16,6 +16,7 @@ from typing import Any
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
+from guardrails import otel
 from guardrails.config import VERSION, Settings, load_settings
 from guardrails.injection import detect_injection
 from guardrails.ood import OodGuard, SbertEmbedder
@@ -202,6 +203,7 @@ def create_app(settings: Settings | None = None, state: State | None = None) -> 
             latency_ms_p95=round(p95, 2),
         )
 
+    otel.init_tracing(app, settings)
     return app
 
 

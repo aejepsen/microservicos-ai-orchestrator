@@ -1,0 +1,113 @@
+{
+ "uid": "msvc-health",
+ "title": "MSVC \u2014 System Health",
+ "schemaVersion": 39,
+ "version": 1,
+ "time": {
+  "from": "now-1h",
+  "to": "now"
+ },
+ "refresh": "30s",
+ "panels": [
+  {
+   "title": "Agregador up",
+   "type": "stat",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 6,
+    "h": 6
+   },
+   "targets": [
+    {
+     "expr": "up{job=\"msvc-ecosystem\"}",
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom"
+     },
+     "legendFormat": "obs up"
+    }
+   ]
+  },
+  {
+   "title": "Servi\u00e7os stale (0 = todos live)",
+   "type": "stat",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom"
+   },
+   "gridPos": {
+    "x": 6,
+    "y": 0,
+    "w": 6,
+    "h": 6
+   },
+   "targets": [
+    {
+     "expr": "sum(count by (service) (latency_ms_p95{stale=\"true\"})) or vector(0)",
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom"
+     },
+     "legendFormat": "stale"
+    }
+   ]
+  },
+  {
+   "title": "P95 por servi\u00e7o (ms)",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 6,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "expr": "latency_ms_p95{service!=\"ecosystem\",stale=\"false\"}",
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom"
+     },
+     "legendFormat": "{{service}}"
+    }
+   ]
+  },
+  {
+   "title": "P50 por servi\u00e7o (ms)",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 6,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "expr": "latency_ms_p50{service!=\"ecosystem\",stale=\"false\"}",
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom"
+     },
+     "legendFormat": "{{service}}"
+    }
+   ]
+  }
+ ]
+}

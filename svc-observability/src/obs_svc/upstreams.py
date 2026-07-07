@@ -17,6 +17,7 @@ REGISTRY: list[Upstream] = [
     Upstream("svc-inference", "http://svc-inference:8202/metrics"),
     Upstream("svc-router", "http://svc-router:8203/metrics"),
     Upstream("svc-rag", "http://svc-rag:8204/metrics"),
+    Upstream("svc-orchestrator", "http://svc-orchestrator:8206/metrics"),
 ]
 
 

@@ -80,6 +80,8 @@ jobs:
         run: docker compose -f docker-compose.e2e.yml -f .github/compose-ci.yml exec -T ollama ollama pull "$E2E_MODEL"
 
       - name: Smoke test
+        env:
+          SKIP_OBS_STACK: "1"   # stack e2e não sobe Jaeger/Prometheus/Grafana (FASE 12 = compose prod)
         run: |
           echo "INTERNAL_KEY=$E2E_KEY" > .env
           ./scripts/smoke.sh
