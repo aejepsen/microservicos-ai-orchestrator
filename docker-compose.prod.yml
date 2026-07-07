@@ -25,6 +25,11 @@ x-logging: &logging
 x-common: &svc-common
   restart: unless-stopped
   logging: *logging
+  # SEC (FASE 13): hardening de runtime aplicável a todos os serviços.
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
   networks:
     - backend
 
@@ -183,6 +188,12 @@ services:
       HF_HUB_OFFLINE: "1"
       OTEL_ENABLED: "1"
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      # SEC-04: fallback LLM ligado — sem isso, query ambígua dá 503
+      LLM_ENABLED: "1"
+      LLM_URL: http://svc-inference:8202/v1/chat/completions
+      LLM_MODEL: ${MODEL:-qwen3.5-9b-orch}
+      DOWNSTREAM_KEY: ${INTERNAL_KEY}
+      ALLOW_LOCAL_LLM: "1"
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8203/health', timeout=3)"]

@@ -10,4 +10,8 @@ RUN pip install .
 COPY api ./api
 
 EXPOSE 8202
+# SEC-01 (FASE 13): non-root. Modelos/dirs já criados como root acima; chown antes de trocar.
+RUN useradd -r -u 10001 appuser && chown -R appuser:appuser /app
+USER appuser
+
 CMD ["uvicorn", "inference.app:app", "--host", "0.0.0.0", "--port", "8202"]

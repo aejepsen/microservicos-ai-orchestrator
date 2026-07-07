@@ -31,9 +31,10 @@ def _parse_domains(raw: str, allowed: list[str]) -> list[str]:
 class HttpLLM:
     """Cliente OpenAI-compat (chat/completions) para classificação."""
 
-    def __init__(self, url: str, model: str, timeout_s: float = 30.0) -> None:
+    def __init__(self, url: str, model: str, api_key: str = "", timeout_s: float = 30.0) -> None:
         self._url = url
         self._model = model
+        self._api_key = api_key
         self._timeout = timeout_s
 
     def classify(self, query: str, allowed: list[str]) -> list[str]:
@@ -48,7 +49,8 @@ class HttpLLM:
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0,
         }
-        resp = httpx.post(self._url, json=payload, timeout=self._timeout)
+        headers = {"X-Internal-Key": self._api_key} if self._api_key else {}
+        resp = httpx.post(self._url, json=payload, headers=headers, timeout=self._timeout)
         resp.raise_for_status()
         content = resp.json()["choices"][0]["message"]["content"]
         return _parse_domains(content, allowed)

@@ -34,6 +34,7 @@ from guardrails.schemas import (
     Verdicts,
 )
 from guardrails.security import RateLimiter, client_ip, verify_internal_key
+from guardrails.security_headers import add_security_headers
 
 logger = logging.getLogger("guardrails")
 
@@ -203,6 +204,7 @@ def create_app(settings: Settings | None = None, state: State | None = None) -> 
             latency_ms_p95=round(p95, 2),
         )
 
+    add_security_headers(app)
     otel.init_tracing(app, settings)
     return app
 

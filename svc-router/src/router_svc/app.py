@@ -25,6 +25,7 @@ from router_svc.security import (
     validate_outbound_url,
     verify_internal_key,
 )
+from router_svc.security_headers import add_security_headers
 
 logger = logging.getLogger("router")
 
@@ -65,7 +66,7 @@ class State:
             except ValueError as exc:
                 logger.error("LLM_URL invalida (camada LLM desativada): %s", exc)
                 return None
-            return HttpLLM(settings.llm_url, settings.llm_model)
+            return HttpLLM(settings.llm_url, settings.llm_model, settings.downstream_key)
         return None
 
 
@@ -157,6 +158,7 @@ def create_app(settings: Settings | None = None, state: State | None = None) -> 
             latency_ms_p50=round(p50, 2), latency_ms_p95=round(p95, 2),
         )
 
+    add_security_headers(app)
     otel.init_tracing(app, settings)
     return app
 

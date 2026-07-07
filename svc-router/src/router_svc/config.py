@@ -29,6 +29,7 @@ class Settings:
     hybrid_enabled: bool = field(default_factory=lambda: _env_bool("HYBRID_ENABLED", True))
     llm_enabled: bool = field(default_factory=lambda: _env_bool("LLM_ENABLED"))
     llm_url: str = field(default_factory=lambda: os.environ.get("LLM_URL", ""))
+    downstream_key: str = field(default_factory=lambda: os.environ.get("DOWNSTREAM_KEY", ""))
     llm_model: str = field(default_factory=lambda: os.environ.get("LLM_MODEL", ""))
     llm_fallback_soft: bool = field(default_factory=lambda: _env_bool("LLM_FALLBACK_SOFT"))
     allow_local_llm: bool = field(default_factory=lambda: _env_bool("ALLOW_LOCAL_LLM"))

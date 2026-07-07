@@ -27,6 +27,7 @@ from obs_svc.schemas import (
 )
 from obs_svc.scraper import FakeScraper, HttpScraper, Scraper
 from obs_svc.security import RateLimiter, client_ip, validate_outbound_url, verify_internal_key
+from obs_svc.security_headers import add_security_headers
 from obs_svc.upstreams import registry
 
 logger = logging.getLogger("obs")
@@ -135,6 +136,7 @@ def create_app(settings: Settings | None = None, state: State | None = None) -> 
             latency_ms_p50=round(p50, 2), latency_ms_p95=round(p95, 2),
         )
 
+    add_security_headers(app)
     otel.init_tracing(app, settings)
     return app
 

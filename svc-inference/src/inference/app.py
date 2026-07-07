@@ -27,6 +27,7 @@ from inference.schemas import (
     Usage,
 )
 from inference.security import RateLimiter, client_ip, verify_internal_key
+from inference.security_headers import add_security_headers
 
 logger = logging.getLogger("inference")
 
@@ -174,6 +175,7 @@ def create_app(settings: Settings | None = None, state: State | None = None) -> 
             circuit_state=st.breaker.state.value,
         )
 
+    add_security_headers(app)
     otel.init_tracing(app, settings)
     return app
 

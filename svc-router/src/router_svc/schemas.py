@@ -13,7 +13,7 @@ class RouteDef(BaseModel):
 
 
 class RouteRequest(BaseModel):
-    query: str = Field(min_length=1)
+    query: str = Field(min_length=1, max_length=8000)
     allow_llm: bool = True
     top_k: int = 3
     routes_override: list[RouteDef] | None = None

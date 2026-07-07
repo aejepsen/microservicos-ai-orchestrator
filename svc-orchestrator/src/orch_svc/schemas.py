@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 
 class ChatRequest(BaseModel):
-    query: str = Field(min_length=1)
+    query: str = Field(min_length=1, max_length=8000)
     thread_id: str | None = None
     stream: bool = False
     allow_write: bool = False

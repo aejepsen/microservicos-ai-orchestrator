@@ -26,7 +26,7 @@ class IngestResponse(BaseModel):
 
 
 class SearchRequest(BaseModel):
-    query: str = Field(min_length=1)
+    query: str = Field(min_length=1, max_length=8000)
     collection: str = "default"
     top_k: int = 3
 

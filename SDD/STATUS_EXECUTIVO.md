@@ -1,8 +1,8 @@
 # STATUS EXECUTIVO — SDD 7 Serviços (Rodadas 1-7) + Roadmap 18 Fases
 
 **Data**: 2026-07-07
-**Status**: ✅ SDD · ✅ F8 E2E · ✅ F9 compose prod · ✅ F10 CI/CD · ⏭️ F11 skipped · ✅ F12 observability (DS-01)
-**Próxima fase**: FASE 13 — Security Hardening
+**Status**: ✅ SDD · ✅ F8 E2E · ✅ F9 prod · ✅ F10 CI/CD · ⏭️ F11 skip · ✅ F12 observ · ✅ F13 security (L2 aprovado)
+**Próxima fase**: FASE 14 — Load Testing (P95 real c/ GPU)
 **Atualizado**: 2026-07-07 (pós-FASE 8)
 
 ---
@@ -108,7 +108,7 @@ msvc-e2e-svc-orchestrator:latest     247MB
 
 ### **Bloco 3: Segurança & Performance (Fases 13-14)**
 
-**Fase 13: Security Hardening** (2w)
+**Fase 13: Security Hardening** (2w) — ✅ CONCLUÍDA (2026-07-07, /hm-security L2, 4 findings corrigidos, APROVADO; as-built NEXT_PHASES §13.3)
 - Secrets: Vault ou AWS Secrets Manager
 - mTLS: cert rotation inter-serviços
 - Audit trail: JSON estruturado (quem, o quê, quando)

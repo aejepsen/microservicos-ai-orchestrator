@@ -38,6 +38,7 @@ from orch_svc.schemas import (
     ThreadState,
 )
 from orch_svc.security import RateLimiter, client_ip, validate_outbound_url, verify_internal_key
+from orch_svc.security_headers import add_security_headers
 
 logger = logging.getLogger("orch")
 
@@ -202,6 +203,7 @@ def create_app(settings: Settings | None = None, state: State | None = None) -> 
             latency_ms_p50=round(p50, 2), latency_ms_p95=round(p95, 2),
         )
 
+    add_security_headers(app)
     otel.init_tracing(app, settings)
     return app
 

@@ -34,6 +34,7 @@ from evals_svc.security import (
     validate_outbound_url,
     verify_internal_key,
 )
+from evals_svc.security_headers import add_security_headers
 from evals_svc.suites import get_suite, list_suites
 
 logger = logging.getLogger("evals")
@@ -223,6 +224,7 @@ def create_app(settings: Settings | None = None, state: State | None = None) -> 
             latency_ms_p50=round(p50, 2), latency_ms_p95=round(p95, 2),
         )
 
+    add_security_headers(app)
     otel.init_tracing(app, settings)
     return app
 

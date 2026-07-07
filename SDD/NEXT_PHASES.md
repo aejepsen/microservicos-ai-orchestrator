@@ -570,6 +570,25 @@ groups:
 }
 ```
 
+### 13.3 As-built (2026-07-07) — auditoria /hm-security nível L2
+
+Auditoria completa via `/hm-security` (L2: LLM presente → Domínio 12 obrigatório; sem upload/multi-tenant/senha de usuário — auth é chave interna server-to-server). **4 findings, todos corrigidos + verificados no stack no ar.**
+
+**PASS sem alteração:** compare_digest (timing-safe) 7/7 · Swagger/OpenAPI off (`docs_url=None`) 7/7 · `.dockerignore` exclui `.env/.venv/.git` 7/7 · zero secret no repo e no git history (`.env` nunca commitado; scan de padrões limpo) · SSRF guard com bloqueio de metadata/loopback (`validate_outbound_url`) · sem `eval/exec/os.system/subprocess/pickle/yaml.load` · `pip-audit` sem CVE conhecido · guardrails bloqueia prompt injection (403) · auth fail-closed (401) · rede backend `internal:true`, portas só 127.0.0.1.
+
+| ID | Sev | Finding | Fix | Verificação |
+|----|-----|---------|-----|-------------|
+| SEC-01 | ALTO | 7 containers rodavam **root** (container escape = root no host) | `useradd -u 10001 appuser` + `chown` + `USER appuser` nos 7 Dockerfiles; `cap_drop: ALL` + `no-new-privileges` no anchor comum | `whoami`=appuser 7/7; `CapDrop=[ALL]` |
+| SEC-02 | MÉDIO | `query`/`text` sem `max_length` → DoS por payload gigante + amplificação de custo LLM (Domínio 12.4) | `Field(max_length=8000)` em orchestrator/router/rag; guardrails já tinha `MAX_TEXT_CHARS`→413 (mantido) | query 9000 chars → 422 |
+| SEC-03 | MÉDIO | Sem security headers HTTP (defense-in-depth) | `security_headers.py` (middleware idêntico 7 svcs): `X-Content-Type-Options`, `X-Frame-Options`, CSP `default-src 'none'`, `Referrer-Policy`, `Permissions-Policy`, `Cache-Control: no-store` | 3/3 headers presentes |
+| SEC-04 | BAIXO | Router LLM fallback **disabled** no compose → query ambígua = 503; e `HttpLLM` não autenticava downstream (404→seria 401) | compose: `LLM_ENABLED=1` + `LLM_URL=.../v1/chat/completions` + `DOWNSTREAM_KEY`; código: `HttpLLM` envia `X-Internal-Key` | jailbreak "DAN"/"repeat instructions" → 200 (era 503) |
+
+**Nota Domínio 12 (LLM):** guardrails bloqueia injection clássica (403); jailbreaks que passam o detector chegam ao pipeline mas o modelo final recusa — e o design é **fail-closed** (nega em vez de responder errado). O 503 do SEC-04 já era seguro; o fix melhorou robustez sem afetar postura.
+
+**Veredicto: APROVADO — zero findings críticos ou altos em aberto.** Smoke 10/10 PASS pós-fixes.
+
+Audit trail estruturado (§13.2) fica no BACKLOG: logs já carregam `trace_id`/`event`/`decision` em JSON; formalizar o schema completo é incremento, não gap de segurança.
+
 ---
 
 ## FASE 14: Load Testing & Performance Tuning (1-2 semanas)
