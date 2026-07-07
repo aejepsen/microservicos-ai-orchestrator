@@ -761,6 +761,21 @@ kubectl rollout restart deployment/svc-orchestrator -n prod
 - **ARCHITECTURE.md**: updated with K8s topology, network policies, data flows
 - **API_REFERENCE.md**: auto-generated from OpenAPI + examples
 
+### 16.3 As-built (2026-07-07)
+
+**Entregue:** 5 documentos em `docs/`, todos **validados contra o stack no ar** (cada
+endpoint/comando citado foi testado — retornou 200/existe), não genéricos:
+
+- `docs/ARCHITECTURE.md` — topologia as-built (portas reais 8200-8206, redes `backend internal`/`edge`, fluxo do `/v1/chat`). Corrige o diagrama do rascunho (que tinha portas erradas, Neo4j e topologia K8s inexistentes).
+- `docs/DEPLOYMENT.md` — deploy via `make up`/`smoke-test`, segredos fail-closed, rollback stateless, imagens GHCR.
+- `docs/RUNBOOK.md` — troubleshooting por sintoma, ancorado em problemas **reais** deste stack (503 router/embedder, `HF_HUB_OFFLINE`, cold start GPU, circuit breaker, OOD, recovery).
+- `docs/API_REFERENCE.md` — endpoints `/v1/` por serviço (7×) + exemplos curl. Swagger runtime off (segurança) → contrato em `svc-*/api/openapi.yaml`.
+- `docs/SLA.md` — SLOs derivados do baseline medido (§14.3), RTO/RPO (§15.4), resposta a incidentes.
+
+**Decisão F16-D1:** docs refletem o **single-node as-built**, não a topologia K8s/ingress/TLS do rascunho (Fase 11 skipped). Referências a helm/kubectl/S3/Neo4j substituídas pelo que realmente existe (docker compose, `make`, `./backups`, Qdrant). README raiz atualizado (7/7 DONE, seção de operação + índice de docs).
+
+**Validação:** 8/8 endpoints citados → 200; configs (`CIRCUIT_FAIL_THRESHOLD`, `RATE_LIMIT_PER_MIN`, `KEEP_ALIVE`) conferidas no compose; UIs Grafana/Jaeger → 200.
+
 ### 16.2 Architecture Diagram
 
 ```

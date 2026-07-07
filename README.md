@@ -32,9 +32,26 @@ Cada `svc-*` é um repositório git independente (contract-first; zero código c
 | svc-router | ✅ DONE (rodada 4) | G1–G8 todos PASS (ver svc-router/README.md) |
 | svc-rag | ✅ DONE (rodada 5) | G1–G8 todos PASS (ver svc-rag/README.md) |
 | svc-observability | ✅ DONE (rodada 6) | G1–G8 todos PASS (ver svc-observability/README.md) |
-| svc-orchestrator | ⏳ próximo (rodada 7, último) | — |
+| svc-orchestrator | ✅ DONE (rodada 7) | G1–G8 todos PASS (ver svc-orchestrator/README.md) |
 
-**Regra do programa:** nenhuma spec nova antes do piloto passar todos os gates. O piloto (svc-guardrails) calibrou o template — as 5 correções da retrospectiva (`SDD/RETRO.md`) já estão aplicadas em `SDD/SPEC_TEMPLATE.md`. `spec-svc-evals` foi gerada a partir do template calibrado.
+**7/7 serviços DONE.** Roadmap pós-SDD (18 fases, `SDD/NEXT_PHASES.md`): fases 8-10, 12-16 concluídas · fase 11 (Kubernetes) skipped · próxima: 17. Stack de produção sobe com `make up` + `make smoke-test`.
+
+## Operação (stack de produção)
+
+```bash
+cp .env.example .env    # gere INTERNAL_KEY, QDRANT_API_KEY, GRAFANA_PASSWORD
+make up                 # sobe os 7 serviços + Ollama/Qdrant + observabilidade
+make smoke-test         # valida ponta a ponta (10 asserts)
+```
+
+## Documentação
+
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — topologia as-built, portas, redes, fluxo do `/v1/chat`
+- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — deploy passo a passo, segredos, rollback
+- [`docs/RUNBOOK.md`](docs/RUNBOOK.md) — troubleshooting por sintoma (503/403/401/422, latência, circuito, OOD, recovery)
+- [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md) — endpoints `/v1/` por serviço + exemplos
+- [`docs/SLA.md`](docs/SLA.md) — SLOs, RTO/RPO, resposta a incidentes
+- [`SDD/NEXT_PHASES.md`](SDD/NEXT_PHASES.md) — roadmap 18 fases com as-built de cada uma
 
 ## Construído por
 

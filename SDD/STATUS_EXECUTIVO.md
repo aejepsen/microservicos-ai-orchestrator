@@ -1,8 +1,8 @@
 # STATUS EXECUTIVO — SDD 7 Serviços (Rodadas 1-7) + Roadmap 18 Fases
 
 **Data**: 2026-07-07
-**Status**: ✅ SDD · F8 · F9 · F10 · ⏭️F11 · F12 · F13 · F14 · ✅ F15 DR/backup (testado)
-**Próxima fase**: FASE 16 — Documentation & Runbooks
+**Status**: ✅ SDD · F8 · F9 · F10 · ⏭️F11 · F12 · F13 · F14 · F15 · ✅ F16 docs/runbooks
+**Próxima fase**: FASE 17 — Observability Runbook (SOP)
 **Atualizado**: 2026-07-07 (pós-FASE 8)
 
 ---
@@ -129,7 +129,7 @@ msvc-e2e-svc-orchestrator:latest     247MB
 - Medido: backup 0.78s, restore RTO 0.34s; só Qdrant (único dado insubstituível)
 - Backup local (sem S3, F15-D2); Neo4j fora (F9-D4); upload API contorna cap_drop (F15-D4)
 
-**Fase 16: Documentation & Runbooks** (1w)
+**Fase 16: Documentation & Runbooks** (1w) — ✅ CONCLUÍDA (2026-07-07, 5 docs validados contra o stack; as-built NEXT_PHASES §16.3)
 - DEPLOYMENT.md: passo-a-passo produção
 - RUNBOOK.md: troubleshooting (latência, circuito, OOD drift)
 - SLA.md: uptime targets, escalation
