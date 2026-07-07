@@ -1,0 +1,116 @@
+# E2E: 7 microservicos + ollama + qdrant para smoke real ponta a ponta.
+# Uso: docker compose -f docker-compose.e2e.yml up -d --build && ./e2e/smoke.sh
+name: msvc-e2e
+
+x-health: &py-health
+  interval: 5s
+  timeout: 3s
+  retries: 24
+  start_period: 10s
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_models:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      <<: *py-health
+
+  qdrant:
+    image: qdrant/qdrant:latest
+
+  svc-guardrails:
+    build: ./svc-guardrails
+    environment:
+      INTERNAL_KEY: ${E2E_KEY:-e2e-local-key}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8200/health', timeout=3)"]
+      <<: *py-health
+
+  svc-evals:
+    build: ./svc-evals
+    environment:
+      INTERNAL_KEY: ${E2E_KEY:-e2e-local-key}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8201/health', timeout=3)"]
+      <<: *py-health
+
+  svc-inference:
+    build: ./svc-inference
+    environment:
+      INTERNAL_KEY: ${E2E_KEY:-e2e-local-key}
+      BACKEND: ollama
+      BACKEND_URL: http://ollama:11434
+      DEFAULT_MODEL: ${E2E_MODEL:-qwen2.5:3b}
+    depends_on:
+      ollama:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8202/health', timeout=3)"]
+      <<: *py-health
+
+  svc-router:
+    build: ./svc-router
+    environment:
+      INTERNAL_KEY: ${E2E_KEY:-e2e-local-key}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8203/health', timeout=3)"]
+      <<: *py-health
+
+  svc-rag:
+    build: ./svc-rag
+    ports:
+      - "127.0.0.1:8204:8204"
+    environment:
+      INTERNAL_KEY: ${E2E_KEY:-e2e-local-key}
+      VECTOR_STORE: qdrant
+      QDRANT_URL: http://qdrant:6333
+      ALLOW_LOCAL_STORE: "1"
+    depends_on:
+      - qdrant
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8204/health', timeout=3)"]
+      <<: *py-health
+
+  svc-observability:
+    build: ./svc-observability
+    ports:
+      - "127.0.0.1:8205:8205"
+    environment:
+      INTERNAL_KEY: ${E2E_KEY:-e2e-local-key}
+      UPSTREAM_KEY: ${E2E_KEY:-e2e-local-key}
+      ALLOW_LOCAL_UPSTREAM: "1"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8205/health', timeout=3)"]
+      <<: *py-health
+
+  svc-orchestrator:
+    build: ./svc-orchestrator
+    ports:
+      - "127.0.0.1:8206:8206"
+    environment:
+      INTERNAL_KEY: ${E2E_KEY:-e2e-local-key}
+      DOWNSTREAM_KEY: ${E2E_KEY:-e2e-local-key}
+      ALLOW_LOCAL_DOWNSTREAM: "1"
+      HITL_ENABLED: "1"
+      DOWNSTREAM_TIMEOUT_S: "120"
+      CIRCUIT_FAIL_THRESHOLD: "5"
+      MODEL: ${E2E_MODEL:-qwen2.5:3b}
+    depends_on:
+      svc-guardrails:
+        condition: service_healthy
+      svc-router:
+        condition: service_healthy
+      svc-rag:
+        condition: service_healthy
+      svc-inference:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8206/health', timeout=3)"]
+      <<: *py-health
+
+volumes:
+  ollama_models:
+    external: true
+    name: ai-orchestrator_ollama_data

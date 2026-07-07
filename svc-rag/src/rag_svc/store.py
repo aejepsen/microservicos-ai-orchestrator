@@ -7,6 +7,7 @@ mesmo conteúdo é no-op.
 from __future__ import annotations
 
 import hashlib
+import uuid
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
@@ -106,13 +107,23 @@ class QdrantStore:
             self._ensure(c, collection, vectors.shape[1])
             points = [
                 {
-                    "id": ch.chunk_id,
+                    "id": str(uuid.uuid5(uuid.NAMESPACE_URL, ch.chunk_id)),
                     "vector": vec.tolist(),
-                    "payload": {"doc_id": ch.doc_id, "text": ch.text, "metadata": ch.metadata},
+                    "payload": {
+                        "chunk_id": ch.chunk_id,
+                        "doc_id": ch.doc_id,
+                        "text": ch.text,
+                        "metadata": ch.metadata,
+                    },
                 }
                 for ch, vec in zip(chunks, vectors, strict=True)
             ]
-            c.put(f"/collections/{collection}/points", json={"points": points})
+            r = c.put(
+                f"/collections/{collection}/points",
+                params={"wait": "true"},
+                json={"points": points},
+            )
+            r.raise_for_status()
         return len(points)
 
     def search(self, collection: str, qvec: np.ndarray, top_k: int) -> list[Hit]:
@@ -121,11 +132,12 @@ class QdrantStore:
                 f"/collections/{collection}/points/search",
                 json={"vector": qvec.tolist(), "limit": top_k, "with_payload": True},
             )
+            r.raise_for_status()
         hits = []
         for item in r.json().get("result", []):
             p = item.get("payload", {})
-            hits.append(Hit(str(item["id"]), p.get("doc_id", ""), p.get("text", ""),
-                            float(item["score"]), p.get("metadata", {})))
+            hits.append(Hit(p.get("chunk_id", str(item["id"])), p.get("doc_id", ""),
+                            p.get("text", ""), float(item["score"]), p.get("metadata", {})))
         return hits
 
     def count(self, collection: str) -> int:

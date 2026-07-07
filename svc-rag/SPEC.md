@@ -93,7 +93,7 @@ Erro interno: 500 genérico — stack só em log.
 
 - **Estado = os vetores no vector store** (adapter). `InMemoryStore`: dict por coleção com chunks + embeddings (numpy); reinício perde dados (aceitável em dev/gates). `QdrantStore`: coleção Qdrant por `collection`; auth por API key (config do operador).
 - **Chunking** (`src/rag_svc/chunking.py`): split por seções (headers Markdown `#`/`##`) e, dentro de cada seção, por limite de caracteres com overlap configurável; nunca corta no meio de palavra; preserva a ordem e a origem (`doc_id`, offset).
-- **Idempotência**: `chunk_id = sha256(doc_id + chunk_index + content)[:16]`; reingestão do mesmo conteúdo é no-op (conta em `n_skipped_idempotent`).
+- **Idempotência**: `chunk_id = sha256(doc_id + chunk_index + content)[:16]`; reingestão do mesmo conteúdo é no-op (conta em `n_skipped_idempotent`). No `QdrantStore`, o id do ponto é `uuid5(NAMESPACE_URL, chunk_id)` (Qdrant só aceita uint64/UUID); o `chunk_id` original vai no payload e é devolvido nos hits. Upsert com `wait=true` e `raise_for_status` em upsert/search (fail-closed) — ver `DECISIONS.md` D8 (bug encontrado na FASE 8/E2E).
 - **GraphRAG**: artefato `models/communities.json` (pré-gerado offline — fora do escopo do serviço gerar), carregado no boot se presente; ausente → GraphRAG off, `/v1/community/*` responde 503, `/health` marca `graphrag: absent`. Isolamento de artefatos (template §6): comunidades são dados de leitura, não colidem com evals/results.
 
 ## 7. Configuração (env — 12-factor)

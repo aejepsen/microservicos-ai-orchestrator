@@ -23,5 +23,8 @@ Recuperação semântica só é significativa com embeddings reais → G2 carreg
 ## D7 — OTel spans deferidos (config presente, no-op) → BACKLOG
 Embeddings SBERT local não são "GenAI generation" (sem tokens de geração), então spans `gen_ai.*` não se aplicam. Observabilidade via `/metrics` + logs JSON. Spans HTTP próprios → BACKLOG; nenhum gate depende deles.
 
+## D8 — QdrantStore: point id UUID determinístico (bug E2E)
+Qdrant só aceita ids uint64/UUID; o `chunk_id` (sha256[:16] hex) era rejeitado com 400 e o upsert ignorava a resposta — pontos nunca eram gravados (search 200 com 0 hits). Fix: id = `uuid5(NAMESPACE_URL, chunk_id)` (determinístico ⇒ idempotência preservada), `chunk_id` original vai no payload e é devolvido nos hits; upsert usa `?wait=true` e `raise_for_status()` em upsert/search (fail-closed). Descoberto na FASE 8 (E2E) — InMemory/fakes não exercitavam a validação de id do Qdrant real.
+
 ## Desvios da SPEC
 Sem desvio funcional dos gates. D7 é a única redução de escopo (OTel spans → BACKLOG), justificada: observabilidade coberta por /metrics+logs.
