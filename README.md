@@ -31,8 +31,8 @@ Cada `svc-*` é um repositório git independente (contract-first; zero código c
 | svc-inference | ✅ DONE (rodada 3) | G1–G8 todos PASS (ver svc-inference/README.md) |
 | svc-router | ✅ DONE (rodada 4) | G1–G8 todos PASS (ver svc-router/README.md) |
 | svc-rag | ✅ DONE (rodada 5) | G1–G8 todos PASS (ver svc-rag/README.md) |
-| svc-observability | ⏳ próximo (rodada 6) | — |
-| svc-orchestrator | ⏳ aguarda spec (rodada 7) | — |
+| svc-observability | ✅ DONE (rodada 6) | G1–G8 todos PASS (ver svc-observability/README.md) |
+| svc-orchestrator | ⏳ próximo (rodada 7, último) | — |
 
 **Regra do programa:** nenhuma spec nova antes do piloto passar todos os gates. O piloto (svc-guardrails) calibrou o template — as 5 correções da retrospectiva (`SDD/RETRO.md`) já estão aplicadas em `SDD/SPEC_TEMPLATE.md`. `spec-svc-evals` foi gerada a partir do template calibrado.
 

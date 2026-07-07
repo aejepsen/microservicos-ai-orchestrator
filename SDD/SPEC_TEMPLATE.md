@@ -101,6 +101,7 @@
 - **Dependência externa (backend LLM, serviço-alvo, embedder remoto):** modelar como **adapter atrás de interface** + um **fake determinístico**; os gates usam o fake (100% offline); o adapter real só em `make smoke` opcional. Padrão consolidado nas rodadas 2–3 (judge do svc-evals, backend do svc-inference). Nenhum gate pode exigir infra externa no ar (§9).
 - **`conftest.py` padrão silencia log ruidoso:** `logging.getLogger("httpx").setLevel(WARNING)` — TestClient loga cada request em INFO e polui a saída dos eval-scripts.
 - **Enums serializados usam `StrEnum`** (py3.12), não `(str, Enum)` — idioma correto, evita `ruff UP042`, mantém `.value` string no JSON.
+- **Teste de SSRF-permitido usa IP público literal** (ex.: `8.8.8.8`), **não hostname** (`example.com`) — o guard resolve host via `getaddrinfo`; ambiente de gate pode não ter DNS e o guard (corretamente) recusa o que não resolve, quebrando o teste do caso "permitido". IP literal não exige DNS. (Rodada 5.)
 
 ## 9. Dependências
 

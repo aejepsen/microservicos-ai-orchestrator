@@ -188,3 +188,40 @@ Quinto serviço; template com F0 robusto aplicado (§11). Veredito: F0→F7 até
 ## Decisão
 
 5/7 DONE. Método estável e previsível — 3 rodadas seguidas (evals, inference, router, rag) sem fricção de lógica; só ajustes de ambiente/processo, cada um virando regra no template. **1 correção menor** (IP literal em teste SSRF) a aplicar quando conveniente. Próximo: `spec-svc-observability` (rodada 6, ordem ARCHITECTURE §4) — consolida a telemetria já emitida pelos anteriores.
+
+---
+
+# RETRO — Rodada 6 (svc-observability)
+
+Sexto serviço; template com a correção de IP-literal (SSRF, §8.5) aplicada. Serviço "meta": consolida a telemetria dos outros. Veredito: F0→F7 até **G1–G8 todos PASS**, sem fricção nova de ambiente. A correção de IP-literal foi aplicada no teste de SSRF desde o início — não repetiu a falha de DNS da rodada 5.
+
+## Resultados
+
+| Gate | Resultado |
+|------|-----------|
+| G1 testes | 55 pass |
+| G2 agregação | 8/8 (parcial + stale sob falha) |
+| G3 fonte + armadilha | 6/6 (projeção = estimate, não live) |
+| G4 exposição Prometheus | 7/7 (texto reparseável) |
+| G5 lint+mypy | limpo (2 fixes: import sort, StrEnum→Literal type ignore) |
+| G6 contrato | OpenAPI válido |
+| G7 security | fail-closed + SSRF |
+| G8 overview | P95 1.83ms |
+
+## O que funcionou
+
+- **Todas as correções de ambiente acumuladas pagaram**: F0 robusto (venv limpo), conftest silencia httpx, IP literal no SSRF, StrEnum. Nenhuma fricção de ambiente nova nesta rodada — o template está "curado" para os padrões recorrentes.
+- **Armadilha de fonte** (§12.7) pegou o ponto central do serviço: a regra "projeção nunca é live" virou golden testável (derivado nasce estimate por construção).
+- **Prometheus à mão** (sem client): reparse do texto no G4 validou o formato — dependência evitada.
+
+## Fricção nova (rodada 6) — mínima, já conhecida
+
+- **`app = create_app()` no nível do módulo** dispara um `State.__init__` completo no **import** — em svc-observability só emite warnings de SSRF (service names não resolvem fora do Docker); em serviços com SBERT (guardrails/router/rag) isso **carrega o modelo no import**. Funciona (os testes passam), mas é desperdício e acopla import a boot. Não quebrou nenhum gate. **Candidato ao BACKLOG do template**: expor `app` via factory lazy (`app = None` + `get_app()`), ou aceitar o custo. Não-bloqueante; registrado para não esquecer.
+
+## Correção de escopo honesta
+
+- Registro dinâmico de upstreams, alerting e TSDB → BACKLOG (v1 = upstreams por config). Declarado na spec §3 (não-objetivos), não é surpresa.
+
+## Decisão
+
+6/7 DONE. Template maduro — 4 rodadas sem fricção de lógica, só polimento. Único item aberto (import-time `create_app()`) é não-bloqueante, vai pro BACKLOG do template. Próximo e ÚLTIMO: `spec-svc-orchestrator` (rodada 7, ordem ARCHITECTURE §4) — integra tudo (grafo fan-out/fan-in, HITL, SSE); é o teste de integração do ecossistema. Primeiro serviço que consome vários dos outros ao mesmo tempo (guardrails + router + rag + inference).
