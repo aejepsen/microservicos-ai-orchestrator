@@ -1,0 +1,209 @@
+openapi: 3.1.0
+info:
+  title: svc-evals
+  version: 1.0.0
+  description: >
+    Motor de avaliação por golden-set: carrega casos JSONL, aplica scorers
+    plugáveis, computa métricas com gates numéricos (PASS/FAIL) e persiste
+    artefatos rotulados com fonte (live/eval/estimate). Stateless; auth interna.
+
+servers:
+  - url: http://localhost:8201
+
+components:
+  securitySchemes:
+    internalKey:
+      type: apiKey
+      in: header
+      name: X-Internal-Key
+  schemas:
+    BusinessError:
+      type: object
+      required: [error, detail, rule]
+      properties:
+        error: { type: string }
+        detail: { type: string }
+        rule: { type: string }
+    GateSpec:
+      type: object
+      required: [metric, comparator, threshold]
+      properties:
+        metric: { type: string }
+        comparator: { type: string, enum: [">=", ">", "<=", "<", "=="] }
+        threshold: { type: number }
+    TargetSpec:
+      type: object
+      required: [url, input_field, output_pointer]
+      properties:
+        url: { type: string }
+        method: { type: string, default: POST }
+        input_field: { type: string }
+        output_pointer: { type: string, description: "JSONPath simples (subset seguro)" }
+    RunRequest:
+      type: object
+      properties:
+        suite: { type: [string, "null"], description: nome de suite registrada }
+        golden_inline:
+          type: [array, "null"]
+          items: { type: object }
+          description: casos inline (alternativa a suite registrada)
+        scorer: { type: [string, "null"], description: id do scorer built-in }
+        scorer_params: { type: object, default: {} }
+        gate:
+          oneOf:
+            - $ref: "#/components/schemas/GateSpec"
+            - type: "null"
+        mode: { type: string, enum: [offline, live], default: offline }
+        target:
+          oneOf:
+            - $ref: "#/components/schemas/TargetSpec"
+            - type: "null"
+        source: { type: string, enum: [live, eval, estimate], default: eval }
+    RunResponse:
+      type: object
+      required: [suite, metric, value, n_cases, n_failed_cases, source, ran_at, artifact_path]
+      properties:
+        suite: { type: string }
+        metric: { type: string }
+        value: { type: number }
+        gate:
+          oneOf:
+            - $ref: "#/components/schemas/GateSpec"
+            - type: "null"
+        passed: { type: [boolean, "null"] }
+        n_cases: { type: integer }
+        n_failed_cases: { type: integer }
+        source: { type: string, enum: [live, eval, estimate] }
+        ran_at: { type: string }
+        artifact_path: { type: string }
+    SuiteInfo:
+      type: object
+      required: [name, scorer, metric]
+      properties:
+        name: { type: string }
+        scorer: { type: string }
+        metric: { type: string }
+        gate:
+          oneOf:
+            - $ref: "#/components/schemas/GateSpec"
+            - type: "null"
+    ResultsAggregate:
+      type: object
+      required: [results]
+      properties:
+        results:
+          type: array
+          items: { $ref: "#/components/schemas/RunResponse" }
+    Health:
+      type: object
+      required: [status, version, deps]
+      properties:
+        status: { type: string, enum: [ok, degraded] }
+        version: { type: string }
+        deps:
+          type: object
+          required: [judge_adapter, results_dir]
+          properties:
+            judge_adapter: { type: string, enum: [enabled, disabled] }
+            results_dir: { type: string, enum: [ok, absent] }
+    Metrics:
+      type: object
+      required: [source, runs_total, gates_pass_total, gates_fail_total, latency_ms_p50, latency_ms_p95]
+      properties:
+        source: { type: string, enum: [live] }
+        runs_total: { type: integer }
+        gates_pass_total: { type: integer }
+        gates_fail_total: { type: integer }
+        latency_ms_p50: { type: number }
+        latency_ms_p95: { type: number }
+
+paths:
+  /v1/run:
+    post:
+      operationId: run
+      security: [{ internalKey: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RunRequest" }
+      responses:
+        "200":
+          description: rodada concluída
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RunResponse" }
+        "401": { description: sem X-Internal-Key válida }
+        "422":
+          description: suite/golden/scorer inválido
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BusinessError" }
+        "424": { description: modo live e serviço-alvo indisponível }
+        "429": { description: rate limit excedido }
+        "503": { description: scorer llm_judge exigido e JUDGE_ENABLED=0 }
+  /v1/suites:
+    get:
+      operationId: suites
+      security: [{ internalKey: [] }]
+      responses:
+        "200":
+          description: suites registradas
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/SuiteInfo" }
+        "401": { description: sem X-Internal-Key válida }
+  /v1/results:
+    get:
+      operationId: results
+      security: [{ internalKey: [] }]
+      responses:
+        "200":
+          description: agregado das últimas rodadas por suite
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ResultsAggregate" }
+        "401": { description: sem X-Internal-Key válida }
+  /v1/results/{suite}:
+    get:
+      operationId: resultsBySuite
+      security: [{ internalKey: [] }]
+      parameters:
+        - name: suite
+          in: path
+          required: true
+          schema: { type: string }
+        - name: detail
+          in: query
+          required: false
+          schema: { type: integer, enum: [0, 1], default: 0 }
+      responses:
+        "200":
+          description: última rodada da suite
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RunResponse" }
+        "401": { description: sem X-Internal-Key válida }
+        "404": { description: suite sem rodada registrada }
+  /health:
+    get:
+      operationId: health
+      responses:
+        "200":
+          description: liveness + readiness
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+  /metrics:
+    get:
+      operationId: metrics
+      security: [{ internalKey: [] }]
+      responses:
+        "200":
+          description: contadores agregados (source=live)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Metrics" }
+        "401": { description: sem X-Internal-Key válida }

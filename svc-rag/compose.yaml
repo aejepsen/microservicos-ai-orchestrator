@@ -1,0 +1,19 @@
+services:
+  rag:
+    build: .
+    container_name: svc-rag
+    ports:
+      - "127.0.0.1:8204:8204"
+    environment:
+      - INTERNAL_KEY=${INTERNAL_KEY:?INTERNAL_KEY obrigatoria (fail-closed)}
+      - ALLOW_OPEN_ACCESS=${ALLOW_OPEN_ACCESS:-0}
+      - VECTOR_STORE=${VECTOR_STORE:-qdrant}
+      - QDRANT_URL=${QDRANT_URL:-http://localhost:6333}
+      - QDRANT_API_KEY=${QDRANT_API_KEY:-}
+      - GRAPHRAG_ENABLED=${GRAPHRAG_ENABLED:-0}
+      - RATE_LIMIT_PER_MIN=${RATE_LIMIT_PER_MIN:-120}
+      - OTEL_ENABLED=${OTEL_ENABLED:-0}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ./models:/app/models
+    restart: unless-stopped

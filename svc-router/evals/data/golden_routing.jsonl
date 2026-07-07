@@ -1,0 +1,30 @@
+{"query": "Qual o saldo da conta a pagar 231?", "expected": "financas"}
+{"query": "Gere o relatório de fluxo de caixa", "expected": "financas"}
+{"query": "Quais contas a receber estão vencidas?", "expected": "financas"}
+{"query": "Registre o pagamento da conta 45", "expected": "financas"}
+{"query": "Qual o faturamento total de janeiro?", "expected": "financas"}
+{"query": "Qual o saldo de férias do funcionário 4021?", "expected": "rh"}
+{"query": "Cadastre um novo funcionário no sistema", "expected": "rh"}
+{"query": "Quantos funcionários há no departamento de vendas?", "expected": "rh"}
+{"query": "Atualize o salário do colaborador 210", "expected": "rh"}
+{"query": "Registre 15 dias de férias para a matrícula 33", "expected": "rh"}
+{"query": "Quais produtos estão abaixo do ponto de reposição?", "expected": "estoque"}
+{"query": "Crie uma reserva de estoque para o SKU TEC-1", "expected": "estoque"}
+{"query": "Qual a quantidade em estoque do produto 553?", "expected": "estoque"}
+{"query": "Cadastre um produto na categoria eletrônicos", "expected": "estoque"}
+{"query": "Mostre o relatório de reposição sugerida", "expected": "estoque"}
+{"query": "Liste os pedidos do vendedor da região sul", "expected": "vendas"}
+{"query": "Qual o desconto máximo para o pedido?", "expected": "vendas"}
+{"query": "Registre um novo pedido de venda de 50 unidades", "expected": "vendas"}
+{"query": "Mostre os produtos mais vendidos do mês", "expected": "vendas"}
+{"query": "Qual o total de vendas por categoria?", "expected": "vendas"}
+{"query": "Preciso pagar um boleto atrasado", "expected": "financas"}
+{"query": "Quanto entrou de dinheiro esse mês?", "expected": "financas"}
+{"query": "Contratamos alguém novo, cadastra aí", "expected": "rh"}
+{"query": "Quantas pessoas trabalham no RH?", "expected": "rh"}
+{"query": "Tem quantas unidades desse item no depósito?", "expected": "estoque"}
+{"query": "Preciso separar mercadoria para um cliente", "expected": "estoque"}
+{"query": "Fecha esse pedido do cliente pra mim", "expected": "vendas"}
+{"query": "Qual vendedor mais vendeu essa semana?", "expected": "vendas"}
+{"query": "Emite a segunda via da conta de luz a pagar", "expected": "financas"}
+{"query": "Dá baixa nesse produto no estoque", "expected": "estoque"}

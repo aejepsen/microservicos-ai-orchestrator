@@ -1,0 +1,6 @@
+{"input": "politica de reembolso", "expected": "doc_reembolso", "response": ["doc_reembolso", "doc_ferias", "doc_estoque"]}
+{"input": "regra de comissao", "expected": "doc_comissao", "response": ["doc_ferias", "doc_comissao", "doc_x"]}
+{"input": "ponto de reposicao", "expected": "doc_estoque", "response": ["doc_a", "doc_b", "doc_estoque"]}
+{"input": "alcada financeira", "expected": "doc_alcada", "response": ["doc_alcada", "doc_y", "doc_z"]}
+{"input": "saldo de ferias", "expected": "doc_ferias", "response": ["doc_ferias", "doc_a", "doc_b"]}
+{"input": "desconto maximo", "expected": "doc_desconto", "response": ["doc_a", "doc_b", "doc_c", "doc_desconto"], "trap": true}

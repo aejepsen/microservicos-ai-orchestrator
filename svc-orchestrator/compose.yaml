@@ -1,0 +1,21 @@
+services:
+  orchestrator:
+    build: .
+    container_name: svc-orchestrator
+    ports:
+      - "127.0.0.1:8206:8206"
+    environment:
+      - INTERNAL_KEY=${INTERNAL_KEY:?INTERNAL_KEY obrigatoria (fail-closed)}
+      - ALLOW_OPEN_ACCESS=${ALLOW_OPEN_ACCESS:-0}
+      - DOWNSTREAM_KEY=${DOWNSTREAM_KEY:-}
+      - GUARDRAILS_URL=${GUARDRAILS_URL:-http://svc-guardrails:8200}
+      - ROUTER_URL=${ROUTER_URL:-http://svc-router:8203}
+      - RAG_URL=${RAG_URL:-http://svc-rag:8204}
+      - INFERENCE_URL=${INFERENCE_URL:-http://svc-inference:8202}
+      - MODEL=${MODEL:-}
+      - HITL_ENABLED=${HITL_ENABLED:-0}
+      - RAG_ENABLED=${RAG_ENABLED:-1}
+      - RATE_LIMIT_PER_MIN=${RATE_LIMIT_PER_MIN:-120}
+      - OTEL_ENABLED=${OTEL_ENABLED:-0}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    restart: unless-stopped

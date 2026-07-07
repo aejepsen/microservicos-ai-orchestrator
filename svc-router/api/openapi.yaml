@@ -1,0 +1,146 @@
+openapi: 3.1.0
+info:
+  title: svc-router
+  version: 1.0.0
+  description: >
+    Roteamento de intenção em 3 camadas: semântica híbrida (denso + BM25 por RRF),
+    guards léxicos determinísticos e fallback LLM (adapter OpenAI-compat opcional).
+    Retorna RoutePlan rastreável (domains, layer, scores). Stateless; auth interna.
+
+servers:
+  - url: http://localhost:8203
+
+components:
+  securitySchemes:
+    internalKey:
+      type: apiKey
+      in: header
+      name: X-Internal-Key
+  schemas:
+    BusinessError:
+      type: object
+      required: [error, detail, rule]
+      properties:
+        error: { type: string }
+        detail: { type: string }
+        rule: { type: string }
+    RouteDef:
+      type: object
+      required: [name, exemplars]
+      properties:
+        name: { type: string }
+        exemplars:
+          type: array
+          items: { type: string }
+          minItems: 1
+    RouteRequest:
+      type: object
+      required: [query]
+      properties:
+        query: { type: string, minLength: 1 }
+        allow_llm: { type: boolean, default: true }
+        top_k: { type: integer, default: 3 }
+        routes_override:
+          type: [array, "null"]
+          items: { $ref: "#/components/schemas/RouteDef" }
+    RoutePlan:
+      type: object
+      required: [domains, layer, scores, llm_used]
+      properties:
+        domains:
+          type: array
+          items: { type: string }
+          minItems: 1
+        layer: { type: string, enum: [semantic, lexical, llm, fallback] }
+        scores:
+          type: object
+          additionalProperties: { type: number }
+        llm_used: { type: boolean }
+    RouteInfo:
+      type: object
+      required: [name, n_exemplars, n_guards]
+      properties:
+        name: { type: string }
+        n_exemplars: { type: integer }
+        n_guards: { type: integer }
+    Health:
+      type: object
+      required: [status, version, deps]
+      properties:
+        status: { type: string, enum: [ok, degraded] }
+        version: { type: string }
+        deps:
+          type: object
+          required: [embedder, llm_adapter]
+          properties:
+            embedder: { type: string, enum: [ok, down] }
+            llm_adapter: { type: string, enum: [enabled, disabled] }
+    Metrics:
+      type: object
+      required: [source, routes_total, by_layer, latency_ms_p50, latency_ms_p95]
+      properties:
+        source: { type: string, enum: [live] }
+        routes_total: { type: integer }
+        by_layer:
+          type: object
+          additionalProperties: { type: integer }
+        latency_ms_p50: { type: number }
+        latency_ms_p95: { type: number }
+
+paths:
+  /v1/route:
+    post:
+      operationId: route
+      security: [{ internalKey: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RouteRequest" }
+      responses:
+        "200":
+          description: RoutePlan decidido
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RoutePlan" }
+        "401": { description: sem X-Internal-Key válida }
+        "422":
+          description: query inválida / rotas ausentes
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BusinessError" }
+        "429": { description: rate limit excedido }
+        "503": { description: camada LLM exigida e adapter indisponível }
+  /v1/routes:
+    get:
+      operationId: listRoutes
+      security: [{ internalKey: [] }]
+      responses:
+        "200":
+          description: rotas registradas
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/RouteInfo" }
+        "401": { description: sem X-Internal-Key válida }
+  /health:
+    get:
+      operationId: health
+      responses:
+        "200":
+          description: liveness + readiness
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+  /metrics:
+    get:
+      operationId: metrics
+      security: [{ internalKey: [] }]
+      responses:
+        "200":
+          description: contadores por camada + latências (source=live)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Metrics" }
+        "401": { description: sem X-Internal-Key válida }

@@ -1,0 +1,213 @@
+openapi: 3.1.0
+info:
+  title: svc-rag
+  version: 1.0.0
+  description: >
+    Recuperação fundamentada: ingestão (chunking por seção + embeddings SBERT),
+    busca semântica (search_documents) e resumos de comunidade pré-gerados
+    (GraphRAG opt-in). Vector store plugável (InMemory/Qdrant). Auth interna.
+
+servers:
+  - url: http://localhost:8204
+
+components:
+  securitySchemes:
+    internalKey:
+      type: apiKey
+      in: header
+      name: X-Internal-Key
+  schemas:
+    BusinessError:
+      type: object
+      required: [error, detail, rule]
+      properties:
+        error: { type: string }
+        detail: { type: string }
+        rule: { type: string }
+    Document:
+      type: object
+      required: [id, text]
+      properties:
+        id: { type: string }
+        text: { type: string }
+        metadata: { type: object, additionalProperties: true }
+    IngestRequest:
+      type: object
+      required: [documents]
+      properties:
+        collection: { type: string, default: default }
+        documents:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/Document" }
+    IngestResponse:
+      type: object
+      required: [collection, n_documents, n_chunks, n_skipped_idempotent]
+      properties:
+        collection: { type: string }
+        n_documents: { type: integer }
+        n_chunks: { type: integer }
+        n_skipped_idempotent: { type: integer }
+    SearchRequest:
+      type: object
+      required: [query]
+      properties:
+        query: { type: string, minLength: 1 }
+        collection: { type: string, default: default }
+        top_k: { type: integer, default: 3 }
+    Hit:
+      type: object
+      required: [chunk_id, doc_id, text, score]
+      properties:
+        chunk_id: { type: string }
+        doc_id: { type: string }
+        text: { type: string }
+        score: { type: number }
+        metadata: { type: object, additionalProperties: true }
+    SearchResponse:
+      type: object
+      required: [query, hits, collection]
+      properties:
+        query: { type: string }
+        collection: { type: string }
+        hits:
+          type: array
+          items: { $ref: "#/components/schemas/Hit" }
+    CollectionInfo:
+      type: object
+      required: [name, n_chunks]
+      properties:
+        name: { type: string }
+        n_chunks: { type: integer }
+    CommunitySummary:
+      type: object
+      required: [id, title, summary, members]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        summary: { type: string }
+        members:
+          type: array
+          items: { type: string }
+    Health:
+      type: object
+      required: [status, version, deps]
+      properties:
+        status: { type: string, enum: [ok, degraded] }
+        version: { type: string }
+        deps:
+          type: object
+          required: [embedder, vector_store, graphrag]
+          properties:
+            embedder: { type: string, enum: [ok, down] }
+            vector_store: { type: string, enum: [ok, down] }
+            graphrag: { type: string, enum: [enabled, absent] }
+    Metrics:
+      type: object
+      required: [source, ingests_total, searches_total, chunks_total, latency_ms_p50, latency_ms_p95]
+      properties:
+        source: { type: string, enum: [live] }
+        ingests_total: { type: integer }
+        searches_total: { type: integer }
+        chunks_total: { type: integer }
+        latency_ms_p50: { type: number }
+        latency_ms_p95: { type: number }
+
+paths:
+  /v1/ingest:
+    post:
+      operationId: ingest
+      security: [{ internalKey: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/IngestRequest" }
+      responses:
+        "200":
+          description: documentos ingeridos
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/IngestResponse" }
+        "401": { description: sem X-Internal-Key válida }
+        "422":
+          description: documento inválido / muito grande
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BusinessError" }
+        "429": { description: rate limit excedido }
+        "503": { description: embedder ou vector store indisponível }
+  /v1/search:
+    post:
+      operationId: search
+      security: [{ internalKey: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SearchRequest" }
+      responses:
+        "200":
+          description: chunks ranqueados
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SearchResponse" }
+        "401": { description: sem X-Internal-Key válida }
+        "422":
+          description: query inválida
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BusinessError" }
+        "429": { description: rate limit excedido }
+        "503": { description: embedder ou vector store indisponível }
+  /v1/collections:
+    get:
+      operationId: listCollections
+      security: [{ internalKey: [] }]
+      responses:
+        "200":
+          description: coleções e contagem de chunks
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/CollectionInfo" }
+        "401": { description: sem X-Internal-Key válida }
+  /v1/community/{id}:
+    get:
+      operationId: community
+      security: [{ internalKey: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: resumo de comunidade pré-gerado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CommunitySummary" }
+        "401": { description: sem X-Internal-Key válida }
+        "404": { description: comunidade inexistente }
+        "503": { description: GraphRAG desligado / sem artefato }
+  /health:
+    get:
+      operationId: health
+      responses:
+        "200":
+          description: liveness + readiness
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+  /metrics:
+    get:
+      operationId: metrics
+      security: [{ internalKey: [] }]
+      responses:
+        "200":
+          description: contadores + latências (source=live)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Metrics" }
+        "401": { description: sem X-Internal-Key válida }

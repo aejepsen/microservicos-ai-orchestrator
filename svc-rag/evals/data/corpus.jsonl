@@ -1,0 +1,7 @@
+{"id": "reembolso", "text": "# Reembolso\n\nDespesas de viagem são reembolsadas em até 30 dias mediante nota fiscal. O limite diário para alimentação é de cem reais."}
+{"id": "ferias", "text": "# Férias\n\nO colaborador adquire direito a 30 dias de férias após 12 meses de trabalho. O aviso deve ser dado com 30 dias de antecedência."}
+{"id": "comissao", "text": "# Comissão\n\nVendedores recebem 5% de comissão sobre vendas acima da meta mensal. A comissão é paga no mês seguinte."}
+{"id": "estoque", "text": "# Estoque\n\nProdutos abaixo do ponto de reposição geram alerta automático. Reservas expiram em 48 horas se não confirmadas."}
+{"id": "desconto", "text": "# Desconto\n\nDescontos acima de 15% exigem aprovação do gerente comercial. Pedidos acima de 100 unidades têm desconto progressivo."}
+{"id": "alcada", "text": "# Alçada Financeira\n\nPagamentos acima de dez mil reais exigem dupla aprovação. Adiantamentos exigem aval do gestor direto."}
+{"id": "distrator_viagem", "text": "# Viagem Corporativa\n\nA empresa organiza viagens de integração anuais. Os destinos são votados pela equipe. Não trata de reembolso de despesas."}

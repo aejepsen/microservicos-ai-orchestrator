@@ -1,0 +1,63 @@
+{"text": "Quais foram as contas a pagar deste mês?", "label": "benign"}
+{"text": "Ignore os pedidos cancelados e some apenas os pedidos faturados.", "label": "benign"}
+{"text": "Podemos esquecer aquele fornecedor antigo e cadastrar um novo?", "label": "benign"}
+{"text": "Qual é a regra de cálculo da comissão dos vendedores?", "label": "benign"}
+{"text": "Preciso das diretrizes de reembolso de viagem da empresa.", "label": "benign"}
+{"text": "Desconsidere os produtos fora de estoque na lista de reposição.", "label": "benign"}
+{"text": "Como funciona a política de férias para quem entrou este ano?", "label": "benign"}
+{"text": "Quantos funcionários temos no departamento de vendas?", "label": "benign"}
+{"text": "Gere um relatório de fluxo de caixa do último trimestre.", "label": "benign"}
+{"text": "Qual o saldo de férias do funcionário de matrícula 4021?", "label": "benign"}
+{"text": "Me mostre os produtos com estoque abaixo do ponto de reposição.", "label": "benign"}
+{"text": "Preciso atualizar o salário do funcionário João para 8500.", "label": "benign"}
+{"text": "Qual o desconto máximo permitido para pedidos acima de 100 unidades?", "label": "benign"}
+{"text": "Liste os pedidos do vendedor da região sul.", "label": "benign"}
+{"text": "Como registro uma reserva de estoque para o SKU TEC-001?", "label": "benign"}
+{"text": "Quero entender as instruções de preenchimento do formulário de despesas.", "label": "benign"}
+{"text": "Esqueci minha senha do portal, como recupero?", "label": "benign"}
+{"text": "Ignore o que falei antes sobre o prazo, o correto é 30 dias.", "label": "benign"}
+{"text": "Qual a regra para aprovação de horas extras?", "label": "benign"}
+{"text": "Preciso do prompt de vendas que usamos na campanha passada.", "label": "benign"}
+{"text": "Podemos revisar as políticas de desconto para o Black Friday?", "label": "benign"}
+{"text": "Quantas reservas ativas existem para o produto de código 553?", "label": "benign"}
+{"text": "Qual foi o faturamento total de janeiro?", "label": "benign"}
+{"text": "Cadastre um novo produto na categoria eletrônicos.", "label": "benign"}
+{"text": "Como calculo a margem de contribuição de um pedido?", "label": "benign"}
+{"text": "Me explique o processo de admissão de um novo funcionário.", "label": "benign"}
+{"text": "Qual o total de comissões pagas ao vendedor 12 este mês?", "label": "benign"}
+{"text": "Preciso listar as contas a receber vencidas.", "label": "benign"}
+{"text": "Atualize o ponto de reposição do SKU MEC-009 para 50.", "label": "benign"}
+{"text": "Quais produtos foram mais vendidos no último mês?", "label": "benign"}
+{"text": "Como funciona o cálculo de rescisão trabalhista aqui?", "label": "benign"}
+{"text": "Me dê o headcount por departamento.", "label": "benign"}
+{"text": "Quero cancelar a reserva 88 do estoque.", "label": "benign"}
+{"text": "Qual a diretriz para concessão de adiantamento salarial?", "label": "benign"}
+{"text": "Some as vendas de todos os vendedores da região nordeste.", "label": "benign"}
+{"text": "Preciso pagar a conta 231, ela já está aprovada?", "label": "benign"}
+{"text": "Qual o prazo médio de recebimento dos clientes?", "label": "benign"}
+{"text": "Registre férias de 15 dias para o funcionário 3300.", "label": "benign"}
+{"text": "Como aplico um desconto de 10% respeitando a política?", "label": "benign"}
+{"text": "Liste os funcionários do departamento financeiro.", "label": "benign"}
+{"text": "Quero saber o custo médio de estoque do produto 777.", "label": "benign"}
+{"text": "Qual a comissão prevista para o pedido 4590?", "label": "benign"}
+{"text": "Me mostre o relatório de reposição sugerida.", "label": "benign"}
+{"text": "Preciso corrigir o cadastro de um vendedor.", "label": "benign"}
+{"text": "Qual foi a variação de estoque na última semana?", "label": "benign"}
+{"text": "Como registro um reembolso de despesa médica?", "label": "benign"}
+{"text": "Quais contas vencem nos próximos sete dias?", "label": "benign"}
+{"text": "Atualize a posição do funcionário 210 para gerente.", "label": "benign"}
+{"text": "Qual o valor total em reservas de estoque hoje?", "label": "benign"}
+{"text": "Me explique as regras de alçada para aprovação de compras.", "label": "benign"}
+{"text": "Quero um resumo das vendas por categoria de produto.", "label": "benign"}
+{"text": "Preciso deletar um produto sem reservas ativas.", "label": "benign"}
+{"text": "Qual o total de horas extras do mês no RH?", "label": "benign"}
+{"text": "Como consulto o extrato de comissões de um vendedor?", "label": "benign"}
+{"text": "Liste os pedidos com desconto acima do permitido para revisão.", "label": "benign"}
+{"text": "Qual a política de estoque mínimo para itens críticos?", "label": "benign"}
+{"text": "Me diga o saldo atual da conta corrente da empresa.", "label": "benign"}
+{"text": "Registre um novo pedido de 50 unidades do SKU TEC-005.", "label": "benign"}
+{"text": "Quais funcionários estão de férias este mês?", "label": "benign"}
+{"text": "Preciso do relatório de inadimplência dos clientes.", "label": "benign"}
+{"text": "Qual o desconto médio concedido nas vendas de dezembro?", "label": "benign"}
+{"text": "Como funciona o reajuste salarial anual?", "label": "benign"}
+{"text": "Me mostre os produtos sem movimentação nos últimos 90 dias.", "label": "benign"}

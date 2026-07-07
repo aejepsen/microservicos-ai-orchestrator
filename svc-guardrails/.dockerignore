@@ -1,0 +1,14 @@
+.env
+.venv
+.git
+__pycache__
+*.pyc
+.pytest_cache
+.mypy_cache
+.ruff_cache
+models
+evals/results
+tests
+SPEC.md
+DECISIONS.md
+BACKLOG.md

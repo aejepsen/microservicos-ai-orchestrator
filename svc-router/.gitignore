@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+models/
+!models/.gitkeep
+evals/results/*.json
+!evals/results/.gitkeep
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/

@@ -1,0 +1,12 @@
+{"query": "Em quantos dias uma despesa de viagem é reembolsada?", "expected": "reembolso"}
+{"query": "Qual o limite diário de alimentação?", "expected": "reembolso"}
+{"query": "Quando adquiro direito a férias?", "expected": "ferias"}
+{"query": "Qual o percentual de comissão dos vendedores?", "expected": "comissao"}
+{"query": "Quando a comissão é paga?", "expected": "comissao"}
+{"query": "Em quanto tempo expira uma reserva de estoque?", "expected": "estoque"}
+{"query": "Quem aprova desconto acima de 15%?", "expected": "desconto"}
+{"query": "Que valor de pagamento exige dupla aprovação?", "expected": "alcada"}
+{"query": "Qual a antecedência do aviso de férias?", "expected": "ferias"}
+{"query": "Produtos abaixo do ponto de reposição fazem o quê?", "expected": "estoque"}
+{"query": "Pedidos acima de 100 unidades têm o quê?", "expected": "desconto"}
+{"query": "Adiantamento precisa de aval de quem?", "expected": "alcada"}

@@ -1,0 +1,185 @@
+openapi: 3.1.0
+info:
+  title: svc-orchestrator
+  version: 1.0.0
+  description: >
+    Orquestração multi-agente: guardrails → router → fan-out (rag+inference) →
+    fan-in de síntese, com HITL (pausa em escrita) e streaming SSE. Consome os
+    serviços do ecossistema via HTTP. Auth interna.
+
+servers:
+  - url: http://localhost:8206
+
+components:
+  securitySchemes:
+    internalKey:
+      type: apiKey
+      in: header
+      name: X-Internal-Key
+  schemas:
+    ValidationError:
+      type: object
+      required: [detail]
+      properties:
+        detail:
+          type: array
+          items: { type: object }
+    ChatRequest:
+      type: object
+      required: [query]
+      properties:
+        query: { type: string, minLength: 1 }
+        thread_id: { type: [string, "null"] }
+        stream: { type: boolean, default: false }
+        allow_write: { type: boolean, default: false }
+    AgentResult:
+      type: object
+      required: [domain, answer, context_used]
+      properties:
+        domain: { type: string }
+        answer: { type: string }
+        context_used: { type: integer }
+    ChatResponse:
+      type: object
+      required: [thread_id, decision, domains, agents]
+      properties:
+        thread_id: { type: string }
+        decision: { type: string, enum: [answered, blocked, paused] }
+        domains:
+          type: array
+          items: { type: string }
+        agents:
+          type: array
+          items: { $ref: "#/components/schemas/AgentResult" }
+        final: { type: [string, "null"] }
+        pending_write: { type: [object, "null"] }
+    ResumeRequest:
+      type: object
+      required: [approve]
+      properties:
+        approve: { type: boolean }
+    ThreadState:
+      type: object
+      required: [thread_id, decision]
+      properties:
+        thread_id: { type: string }
+        decision: { type: string, enum: [answered, blocked, paused] }
+        final: { type: [string, "null"] }
+        pending_write: { type: [object, "null"] }
+    Health:
+      type: object
+      required: [status, version, deps]
+      properties:
+        status: { type: string, enum: [ok, degraded] }
+        version: { type: string }
+        deps:
+          type: object
+          additionalProperties: { type: string }
+    Metrics:
+      type: object
+      required: [source, chats_total, blocked_total, paused_total, latency_ms_p50, latency_ms_p95]
+      properties:
+        source: { type: string, enum: [live] }
+        chats_total: { type: integer }
+        blocked_total: { type: integer }
+        paused_total: { type: integer }
+        by_domain:
+          type: object
+          additionalProperties: { type: integer }
+        latency_ms_p50: { type: number }
+        latency_ms_p95: { type: number }
+
+paths:
+  /v1/chat:
+    post:
+      operationId: chat
+      security: [{ internalKey: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChatRequest" }
+      responses:
+        "200":
+          description: >
+            resposta orquestrada. stream=false → ChatResponse. stream=true →
+            text/event-stream de eventos route/agent/final/blocked/paused/error.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChatResponse" }
+            text/event-stream:
+              schema: { type: string }
+        "401": { description: sem X-Internal-Key válida }
+        "403": { description: guardrails bloqueou a query }
+        "422":
+          description: request inválido
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ValidationError" }
+        "429": { description: rate limit excedido }
+        "503": { description: downstream indisponível ou circuito OPEN }
+        "504": { description: deadline do request excedido }
+  /v1/chat/{thread_id}/resume:
+    post:
+      operationId: resume
+      security: [{ internalKey: [] }]
+      parameters:
+        - name: thread_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ResumeRequest" }
+      responses:
+        "200":
+          description: fluxo retomado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChatResponse" }
+        "401": { description: sem X-Internal-Key válida }
+        "404": { description: thread sem pausa pendente }
+        "422":
+          description: request inválido
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ValidationError" }
+  /v1/threads/{thread_id}:
+    get:
+      operationId: thread
+      security: [{ internalKey: [] }]
+      parameters:
+        - name: thread_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: estado da thread
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ThreadState" }
+        "401": { description: sem X-Internal-Key válida }
+        "404": { description: thread inexistente }
+  /health:
+    get:
+      operationId: health
+      responses:
+        "200":
+          description: liveness + readiness
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+  /metrics:
+    get:
+      operationId: metrics
+      security: [{ internalKey: [] }]
+      responses:
+        "200":
+          description: métricas do próprio serviço (source=live)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Metrics" }
+        "401": { description: sem X-Internal-Key válida }

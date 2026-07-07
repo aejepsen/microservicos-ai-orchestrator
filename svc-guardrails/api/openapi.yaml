@@ -1,0 +1,216 @@
+openapi: 3.1.0
+info:
+  title: svc-guardrails
+  version: 1.0.0
+  description: >
+    Análise de segurança de texto para sistemas LLM: sanitização, detecção de
+    prompt injection (léxico PT-BR determinístico) e detecção de OOD
+    (resíduo de subespaço SVD). Stateless; auth interna via X-Internal-Key.
+
+servers:
+  - url: http://localhost:8200
+
+components:
+  securitySchemes:
+    internalKey:
+      type: apiKey
+      in: header
+      name: X-Internal-Key
+  schemas:
+    BusinessError:
+      type: object
+      required: [error, detail, rule]
+      properties:
+        error: { type: string }
+        detail: { type: string }
+        rule: { type: string }
+    InjectionVerdict:
+      type: object
+      required: [flagged, score, patterns]
+      properties:
+        flagged: { type: boolean }
+        score: { type: number, description: "0.0 (limpo) a 1.0; max das regras disparadas" }
+        patterns:
+          type: array
+          items: { type: string }
+          description: ids das famílias de regra disparadas
+    OodVerdict:
+      type: object
+      required: [flagged, residual, threshold]
+      properties:
+        flagged: { type: boolean }
+        residual: { type: number, description: "resíduo normalizado do subespaço [0,1]" }
+        threshold: { type: number, description: "threshold calibrado via LOO no fit" }
+    AnalyzeRequest:
+      type: object
+      required: [text]
+      properties:
+        text: { type: string, minLength: 1 }
+        checks:
+          type: array
+          items: { type: string, enum: [sanitize, injection, ood] }
+          default: [sanitize, injection, ood]
+        context:
+          type: [string, "null"]
+          description: rótulo do chamador para logs (ex. svc-orchestrator)
+    AnalyzeResponse:
+      type: object
+      required: [sanitized_text, verdicts, decision, latency_ms]
+      properties:
+        sanitized_text: { type: string }
+        verdicts:
+          type: object
+          required: [injection, ood]
+          properties:
+            injection:
+              oneOf:
+                - $ref: "#/components/schemas/InjectionVerdict"
+                - type: "null"
+            ood:
+              oneOf:
+                - $ref: "#/components/schemas/OodVerdict"
+                - type: "null"
+        decision: { type: string, enum: [allow, flag, block] }
+        latency_ms: { type: number }
+    FitSample:
+      type: object
+      required: [text]
+      properties:
+        text: { type: string }
+        is_clarification:
+          type: boolean
+          default: false
+          description: amostras true são rejeitadas do fit (lição AIO — contaminam o subespaço)
+    OodFitRequest:
+      type: object
+      required: [in_domain, ood_calibration]
+      properties:
+        in_domain:
+          type: array
+          minItems: 30
+          items: { $ref: "#/components/schemas/FitSample" }
+        ood_calibration:
+          type: array
+          minItems: 10
+          items: { type: string }
+          description: amostras fora de domínio usadas SÓ para calibrar/reportar AUC do fit
+    OodFitResponse:
+      type: object
+      required: [n_samples, n_rejected_clarification, threshold, auc_loo, corpus_hash]
+      properties:
+        n_samples: { type: integer }
+        n_rejected_clarification: { type: integer }
+        threshold: { type: number }
+        auc_loo: { type: number }
+        corpus_hash: { type: string }
+    OodStatus:
+      type: object
+      required: [fitted]
+      properties:
+        fitted: { type: boolean }
+        n_samples: { type: [integer, "null"] }
+        threshold: { type: [number, "null"] }
+        auc_loo: { type: [number, "null"] }
+        fitted_at: { type: [string, "null"], description: ISO-8601 }
+        corpus_hash: { type: [string, "null"] }
+    Health:
+      type: object
+      required: [status, version, deps]
+      properties:
+        status: { type: string, enum: [ok, degraded] }
+        version: { type: string }
+        deps:
+          type: object
+          required: [embedder, ood_artifact]
+          properties:
+            embedder: { type: string, enum: [ok, down] }
+            ood_artifact: { type: string, enum: [ok, absent] }
+    Metrics:
+      type: object
+      required: [source, analyses_total, blocks_total, flags_total, latency_ms_p50, latency_ms_p95]
+      properties:
+        source: { type: string, enum: [live] }
+        analyses_total: { type: integer }
+        blocks_total: { type: integer }
+        flags_total: { type: integer }
+        latency_ms_p50: { type: number }
+        latency_ms_p95: { type: number }
+
+paths:
+  /v1/analyze:
+    post:
+      operationId: analyze
+      security: [{ internalKey: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AnalyzeRequest" }
+      responses:
+        "200":
+          description: análise concluída
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AnalyzeResponse" }
+        "401": { description: sem X-Internal-Key válida (fail-closed) }
+        "413": { description: texto excede MAX_TEXT_CHARS }
+        "422":
+          description: erro de validação/negócio
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BusinessError" }
+        "429": { description: rate limit excedido }
+        "503": { description: OOD_REQUIRED=1 e artefato ausente }
+  /v1/ood/fit:
+    post:
+      operationId: oodFit
+      security: [{ internalKey: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OodFitRequest" }
+      responses:
+        "200":
+          description: subespaço fitado e persistido
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OodFitResponse" }
+        "401": { description: sem X-Internal-Key válida }
+        "422":
+          description: corpus insuficiente (<30 válidas) ou embedder indisponível
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BusinessError" }
+        "409": { description: fit em andamento }
+  /v1/ood/status:
+    get:
+      operationId: oodStatus
+      security: [{ internalKey: [] }]
+      responses:
+        "200":
+          description: metadados do artefato ativo
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OodStatus" }
+        "401": { description: sem X-Internal-Key válida }
+  /health:
+    get:
+      operationId: health
+      responses:
+        "200":
+          description: liveness + readiness
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+  /metrics:
+    get:
+      operationId: metrics
+      security: [{ internalKey: [] }]
+      responses:
+        "200":
+          description: contadores agregados (source=live)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Metrics" }
+        "401": { description: sem X-Internal-Key válida }

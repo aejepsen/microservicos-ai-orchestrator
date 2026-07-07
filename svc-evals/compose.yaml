@@ -1,0 +1,17 @@
+services:
+  evals:
+    build: .
+    container_name: svc-evals
+    ports:
+      - "127.0.0.1:8201:8201"
+    environment:
+      - INTERNAL_KEY=${INTERNAL_KEY:?INTERNAL_KEY obrigatoria (fail-closed)}
+      - ALLOW_OPEN_ACCESS=${ALLOW_OPEN_ACCESS:-0}
+      - RESULTS_CACHE_TTL_S=${RESULTS_CACHE_TTL_S:-10}
+      - JUDGE_ENABLED=${JUDGE_ENABLED:-0}
+      - RATE_LIMIT_PER_MIN=${RATE_LIMIT_PER_MIN:-120}
+      - OTEL_ENABLED=${OTEL_ENABLED:-0}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ./evals/results:/app/evals/results
+    restart: unless-stopped
