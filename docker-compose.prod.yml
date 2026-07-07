@@ -140,6 +140,7 @@ services:
       HF_HUB_OFFLINE: "1"   # rede backend é internal; modelo ST vem do cache da imagem
       OTEL_ENABLED: "1"
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      RATE_LIMIT_PER_MIN: "6000"   # F14: 1 IP (orchestrator) agrega todo o tráfego
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8200/health', timeout=3)"]
@@ -262,6 +263,8 @@ services:
       HITL_ENABLED: "1"
       DOWNSTREAM_TIMEOUT_S: "120"
       CIRCUIT_FAIL_THRESHOLD: "5"
+      # F14 tuning: 120/min (default) = 2 req/s, baixo p/ gateway. 6000/min = 100 req/s.
+      RATE_LIMIT_PER_MIN: "6000"
       MODEL: ${MODEL:-qwen3.5-9b-orch}
       OTEL_ENABLED: "1"
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318

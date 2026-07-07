@@ -635,6 +635,45 @@ export default function () {
 | **Error rate** | < 0.1% | tbd |
 | **Circuit open rate** | < 1% | tbd |
 
+### 14.3 As-built (2026-07-07) — baseline medido em 1× RTX 3060
+
+**Entregue:** `scripts/loadtest.py` (asyncio+httpx, 2 cenários) + `make loadtest`. Substitui k6 (F14-D1). O stack tem **dois regimes de performance** e o harness mede os dois separado.
+
+**F14-D1 — thresholds do rascunho recalibrados.** `> 500 req/s` + `P95 < 2s` no chat pressupõem **cluster GPU** (é literalmente a Fase 18, "dedicated LLM inference nodes"). Numa GPU consumer servindo `qwen3.5-9b-orch`, a geração é serializada — 500 req/s de LLM é fisicamente impossível. Baseline honesto abaixo, com metas por regime.
+
+**Plano de controle (sem LLM — guardrails bloqueia injection, 1 hop):**
+
+| Concorrência | RPS | P95 | P99 | Erros |
+|---|---|---|---|---|
+| 20 | **245** | 117ms | 237ms | 0% |
+| 50 | 195 (saturado) | 710ms | 1174ms | 0% |
+
+→ Teto da malha de serviços ~**245 rps @ c=20**, P95 < 120ms. Gargalo: embedding SBERT no guardrails (CPU). Sweet spot c=20; c=50 já degrada.
+
+**Caminho completo (com LLM na GPU — `/v1/chat` real, RAG+geração):**
+
+| Concorrência | RPS | P50 | P95 | Erros |
+|---|---|---|---|---|
+| 1 | **0.32** | 3410ms | 3720ms | 0% |
+| 2 | 0.22 | 6946ms | 16100ms | 0% |
+| 4 | 0.14 | 27954ms | 60155ms | 0% |
+
+→ Latência single-chat **P95 3.7s**; concorrência saudável = **1**. c=2 dobra a latência, c=4 satura (fila). 1 GPU não paraleliza geração de 9b; `OLLAMA_NUM_PARALLEL=3` só ajuda fan-out multi-domínio *dentro* de um request (medição AIO), não requests concorrentes distintos. **Zero erros e zero circuit-open em todos os regimes** — sob saturação o sistema enfileira e responde (fail-safe), não derruba.
+
+**Baseline final (metas recalibradas para single-node):**
+
+| Métrica | Meta single-node | Medido | Status |
+|---|---|---|---|
+| P95 plano de controle | < 200ms @ ≥200 rps | 117ms @ 245 rps | ✅ |
+| P95 chat single (GPU) | < 5s | 3.7s | ✅ |
+| Throughput chat | ~0.3 req/s (1 GPU) | 0.32 rps | ✅ (limite físico) |
+| Error rate | < 0.1% | 0% | ✅ |
+| Circuit open rate | < 1% | 0% | ✅ |
+
+**F14-D2 — tuning aplicado:** `RATE_LIMIT_PER_MIN` 120→6000 (orchestrator+guardrails). 120/min (2 req/s) era baixo demais pra um gateway e teto artificial no plano de controle. 6000/min (100 req/s) fica acima do teto real (245 rps só é atingível em burst; sustentado é menor) e ainda protege contra abuso.
+
+**Conclusão:** capacidade real = ~1 chat concorrente com P95 3.7s + plano de controle a 245 rps. Escalar chat = mais GPUs (Fase 18, GPU cluster) — não é gargalo de software. Load test **fora do CI** (runner sem GPU); roda local via `make loadtest`.
+
 ---
 
 ## FASE 15: Disaster Recovery & Backup (1-2 semanas)

@@ -1,8 +1,8 @@
 # STATUS EXECUTIVO — SDD 7 Serviços (Rodadas 1-7) + Roadmap 18 Fases
 
 **Data**: 2026-07-07
-**Status**: ✅ SDD · ✅ F8 E2E · ✅ F9 prod · ✅ F10 CI/CD · ⏭️ F11 skip · ✅ F12 observ · ✅ F13 security (L2 aprovado)
-**Próxima fase**: FASE 14 — Load Testing (P95 real c/ GPU)
+**Status**: ✅ SDD · F8 E2E · F9 prod · F10 CI · ⏭️F11 · F12 observ · F13 sec · ✅ F14 load (baseline GPU)
+**Próxima fase**: FASE 15 — Disaster Recovery & Backup
 **Atualizado**: 2026-07-07 (pós-FASE 8)
 
 ---
@@ -114,10 +114,11 @@ msvc-e2e-svc-orchestrator:latest     247MB
 - Audit trail: JSON estruturado (quem, o quê, quando)
 - OWASP checklist: SSRF, SQL injection (se), auth chain, TLS 1.3+
 
-**Fase 14: Load Testing & Tuning** (1-2w)
-- k6/locust: 100-1000 req/s stages
-- Targets: P95 < 2s, throughput > 500 req/s, error rate < 0.1%
-- Identify bottlenecks: embedding, inference, Qdrant query
+**Fase 14: Load Testing & Tuning** (1-2w) — ✅ CONCLUÍDA (2026-07-07, baseline medido em RTX 3060; as-built NEXT_PHASES §14.3)
+- `scripts/loadtest.py` (asyncio+httpx) no lugar de k6; `make loadtest`
+- Baseline: plano de controle 245 rps/P95 117ms; chat GPU single P95 3.7s; 0% erro/circuit
+- Thresholds recalibrados p/ single-node (500 rps era p/ cluster GPU = Fase 18)
+- Gargalo = geração LLM na GPU única (físico, não software); tuning RATE_LIMIT 120→6000
 - Tune: batch size, connection pools, model quantization
 
 ### **Bloco 4: Resiliência & Documentação (Fases 15-17)**

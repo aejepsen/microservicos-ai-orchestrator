@@ -22,5 +22,9 @@ model:         ## baixa o modelo no volume do Ollama
 smoke-test:    ## valida o stack ponta a ponta
 	./scripts/smoke.sh
 
+loadtest:      ## F14: baseline de carga (plano de controle + chat GPU)
+	svc-orchestrator/.venv/bin/python scripts/loadtest.py --scenario light --concurrency 20 --requests 1000
+	svc-orchestrator/.venv/bin/python scripts/loadtest.py --scenario chat  --concurrency 1  --requests 6
+
 clean:         ## derruba o stack E APAGA volumes (qdrant + ollama)
 	$(COMPOSE) down -v
