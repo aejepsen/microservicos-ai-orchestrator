@@ -47,6 +47,28 @@ curl -s -X POST localhost:8205/v1/eval-results -H 'X-Internal-Key: k' \
 curl -s localhost:8205/v1/prometheus -H 'X-Internal-Key: k'
 ```
 
+## Export OTLP para SaaS (opt-in — D7)
+
+Além do pull local, o serviço pode **empurrar** as métricas agregadas via OTLP
+HTTP para um backend externo (Grafana Cloud, Honeycomb, New Relic…). Cada
+métrica vira `ObservableGauge` com atributos `service`, `source` e `stale` —
+a regra de fonte viaja no export (derivado chega como `estimate`, nunca `live`).
+
+```bash
+# Grafana Cloud (free tier): stack OTLP endpoint + token
+OTLP_METRICS_ENABLED=1 \
+OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp-gateway-<região>.grafana.net/otlp \
+OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic <base64 instanceID:token>" \
+OTLP_METRICS_INTERVAL_S=60 \
+INTERNAL_KEY=k make run
+```
+
+- **Default OFF** (`OTLP_METRICS_ENABLED=0`) — comportamento 100% on-premise intacto.
+- **Fail-open**: SaaS fora do ar → warning em background; scrape e API nunca bloqueiam.
+- Token só via env — nunca em compose/código versionado.
+- Gates: `G-OTLP-1` (no-op por default) · `G-OTLP-2` (export fiel ao overview,
+  fonte preservada) · `G-OTLP-3` (fail-open com endpoint morto) — `tests/test_otel_metrics.py`.
+
 ## Regra de fonte (inegociável)
 
 - Raspado de `/metrics` upstream → `source=live`.

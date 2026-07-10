@@ -11,7 +11,7 @@ from typing import Any
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 
-from obs_svc import otel
+from obs_svc import otel, otel_metrics
 from obs_svc.aggregator import Aggregator
 from obs_svc.config import VERSION, Settings, load_settings
 from obs_svc.prometheus import render
@@ -48,6 +48,7 @@ class State:
         self.agg = Aggregator(ups, self.scraper)
         self.overviews_total = 0
         self.latencies: deque[float] = deque(maxlen=1000)
+        self.metrics_export: otel_metrics.MetricsExport | None = None
 
     @staticmethod
     def _build_scraper(settings: Settings) -> Scraper:
@@ -104,11 +105,15 @@ def create_app(settings: Settings | None = None, state: State | None = None) -> 
     @app.post("/v1/refresh", response_model=RefreshResponse)
     def refresh(_: None = Depends(auth)) -> RefreshResponse:
         ok, failed = st.agg.refresh()
+        if st.metrics_export:  # nomes novos viram instrumentos (D7)
+            st.metrics_export.sync()
         return RefreshResponse(scraped=ok + failed, ok=ok, failed=failed)
 
     @app.post("/v1/eval-results", response_model=EvalResultResponse)
     def ingest_eval(req: EvalResultIn, _: None = Depends(auth)) -> EvalResultResponse:
         n = st.agg.ingest_eval(req.service, req.dataset_date, [m.model_dump() for m in req.metrics])
+        if st.metrics_export:  # evals podem trazer métricas inéditas (D7)
+            st.metrics_export.sync()
         return EvalResultResponse(ingested=n)
 
     @app.get("/v1/prometheus")
@@ -138,6 +143,7 @@ def create_app(settings: Settings | None = None, state: State | None = None) -> 
 
     add_security_headers(app)
     otel.init_tracing(app, settings)
+    st.metrics_export = otel_metrics.init_metrics_export(st.agg, settings)
     return app
 
 

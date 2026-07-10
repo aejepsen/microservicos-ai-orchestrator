@@ -31,6 +31,10 @@ class Settings:
         default_factory=lambda: int(os.environ.get("RATE_LIMIT_PER_MIN", "120"))
     )
     otel_enabled: bool = field(default_factory=lambda: _env_bool("OTEL_ENABLED"))
+    otlp_metrics_enabled: bool = field(default_factory=lambda: _env_bool("OTLP_METRICS_ENABLED"))
+    otlp_metrics_interval_s: float = field(
+        default_factory=lambda: float(os.environ.get("OTLP_METRICS_INTERVAL_S", "60"))
+    )
     log_level: str = field(default_factory=lambda: os.environ.get("LOG_LEVEL", "INFO"))
 
 
